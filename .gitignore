@@ -1,0 +1,8 @@
+*.ini
+.Rhistory
+*.o
+*.so
+*.dll
+.ini
+*.Rdat
+.Rdat

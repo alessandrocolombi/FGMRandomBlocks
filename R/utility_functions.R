@@ -20,12 +20,25 @@ get_group_indexes = function(rho){
 # =           FUNCIONS FOR MOVING BETWEEN PARTITION REPRESENTATIONS           =
 # =============================================================================
 
+# Vecchia versione del Poli. Buggata se rho = p
+
+# rho_to_r = function(rho){
+#     group_indexes = get_group_indexes(rho)
+#     group_indexes = group_indexes[1:(length(group_indexes)-1)]
+#     r <- numeric(sum(rho)-1)
+#     r[group_indexes] = 1
+#     return(r)
+# }
+
 rho_to_r = function(rho){
-    group_indexes = get_group_indexes(rho)
-    group_indexes = group_indexes[1:(length(group_indexes)-1)]
-    r <- numeric(sum(rho)-1)
-    r[group_indexes] = 1
-    return(r)
+  if(length(rho) == 1)
+    return( rep(0,rho-1) )
+  
+  group_indexes = get_group_indexes(rho)
+  group_indexes = group_indexes[1:(length(group_indexes)-1)]
+  r <- numeric(sum(rho)-1)
+  r[group_indexes] = 1
+  return(r)
 }
 
 z_to_rho = function(z){

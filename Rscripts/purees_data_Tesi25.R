@@ -33,7 +33,8 @@ source("../R/utility_functions.R")
 source("../R/bulky_functions.R")
 source("../R/data_generation.R")
 
-
+seed = 42
+set.seed(seed)
 
 # Load data and plot ------------------------------------------------------
 load("../data/purees.Rdat")
@@ -122,6 +123,7 @@ initialization_values = set_initialization(
 niter   <- 50000
 burn_in <- 10000
 
+tictoc::tic()
 chains = Gibbs_sampler_update(
   set_UpdateParamsGSL_list,
   niter, 
@@ -137,7 +139,7 @@ chains = Gibbs_sampler_update(
   update_graph           = TRUE,
   perform_shuffle        = TRUE
 )
-
+tictoc::toc()
 beepr::beep()
 
 ## 1. Plot smoothed curves -------------------------------------------------

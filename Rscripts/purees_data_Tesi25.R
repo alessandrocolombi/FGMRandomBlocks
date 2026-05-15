@@ -142,7 +142,10 @@ chains = Gibbs_sampler_update(
 tictoc::toc()
 beepr::beep()
 
+save(Gvisited , file = "save/Graphs_Tesi25_p40.Rdat")
+
 ## 1. Plot smoothed curves -------------------------------------------------
+load("save/fit_Tesi25_p40.Rdat")
 # Compute the mean of Beta in order to have data_post
 sum_Beta <- matrix(0, p, n)
 for(i in (burn_in+1):niter){
@@ -212,6 +215,21 @@ par(mfrow=c(1,2))
 plot(ts(mcmc(beta1_plot)))
 plot(ts(mcmc(beta10_plot)))
 
+# Graph size
+Gsize_tr = sapply(chains$Gvisited, function(x) {
+  sum(x)/2
+})
+
+names_pos = c(0,10000,20000,30000,40000)
+pos = round(names_pos) + 10001
+
+
+par(mfrow = c(1,1), mar = c(3.5,3.5,2,1), bty = "l", mgp=c(2,0.5,0))
+plot(x = 10001:50000, y = ts(mcmc(Gsize_tr[10001:50000])),
+     type = "l", lwd = 2, xlab = "Iteration", ylab = "Graph size",
+     xaxt = "n")
+axis(1, at = pos,labels = names_pos, cex.axis = 1 )
+coda::effectiveSize(Gsize_tr)
 
 ## 4. PYP parameters (sigma/theta) -----------------------------------------
 plot(chains$sigma, type = "l")
@@ -239,6 +257,7 @@ num_clusters = as.vector(num_clusters)
 ## Evolution of the number of clusters -------------------------------------
 
 num_clusters = tail(num_clusters, 40000) # burnin
+coda::effectiveSize(num_clusters)
 
 par(mfrow = c(1,1), mgp=c(1.5,0.5,0), mar = c(2.5,2.5,1,1), bty = "l")
 plot(
@@ -246,7 +265,7 @@ plot(
   y = num_clusters,
   type = "n",
   xlab = "Iterations",
-  ylab = "#groups",
+  ylab = "#Groups",
   main = " "
 )
 lines(x = seq_along(num_clusters), y = num_clusters)

@@ -1194,6 +1194,7 @@ Gibbs_sampler = function(data,
     # define structure to save sampled values
     save_res = list(
         G = vector("list", length = niter),
+        Gvisited = vector("list", length = niter),
         K = vector("list", length = niter),
         rho = vector("list", length = niter),
         accepted = vector("numeric", length = niter),
@@ -1383,6 +1384,7 @@ Gibbs_sampler = function(data,
                 # cumulative precision matrix K and probability of inclusion links
                 save_res$K[[it_saved]] = total_K / total_weights
                 save_res$G[[it_saved]] = total_graphs / total_weights
+                save_res$Gvisited[[it_saved]] = output$last_graph
             }
             else{
                 save_res$K[[it_saved]] = total_K
@@ -1617,6 +1619,7 @@ Gibbs_sampler_update = function(
         tau_eps = vector("list", length = niter),
         K = vector("list", length = niter),
         G = vector("list", length = niter),
+        Gvisited = vector("list", length = niter),
         z = vector("list", length = niter),
         rho = vector("list", length = niter),
         time = vector("list", length = niter), 
@@ -1630,6 +1633,7 @@ Gibbs_sampler_update = function(
     chains$tau_eps[[1]] <- initialization_values$tau_eps 
     chains$K[[1]] <- initialization_values$K
     chains$G[[1]] <- initialization_values$G
+    chains$Gvisited[[1]] <- initialization_values$G
     chains$z[[1]] <- initialization_values$z 
     chains$rho[[1]] <- initialization_values$rho 
     chains$time <- 0
@@ -1720,7 +1724,8 @@ Gibbs_sampler_update = function(
         chains$K[[s]] <- res$K [[1]]
         
         # Save G
-        chains$G[[s]] <- res$G [[1]]    
+        chains$G[[s]] <- res$G[[1]]    
+        chains$Gvisited[[s]] <- res$Gvisited[[1]]    
         
         # Save z
         chains$z[[s]] <- z      

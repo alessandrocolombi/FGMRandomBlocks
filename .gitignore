@@ -4,5 +4,6 @@
 *.so
 *.dll
 .ini
-*.Rdat
-.Rdat
+Rscripts/save/fit_Tesi25_p40.Rdat
+Rscripts/save/fit_Tesi25_p40_backup.Rdat
+Rscripts/save/Graphs_Tesi25_p40.Rdat

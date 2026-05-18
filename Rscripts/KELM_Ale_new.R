@@ -321,8 +321,8 @@ data_W_n <- t(as.matrix(data_n))
 
 # Settings ----------------------------------------------------------------
 test_obs_perclass <- 100
-Ns_train <- 100  # n_s - test_obs_perclass
-Nns_train <- 100 # n_n - test_obs_perclass
+Ns_train  <- n_s - test_obs_perclass  # leaves test_obs_perclass test curves
+Nns_train <- n_n - test_obs_perclass  # leaves test_obs_perclass test curves
 
 Nrep <- 100
 seed0 <- 13212
@@ -701,8 +701,8 @@ if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
 }
 
-output_file <- file.path(output_dir, "KELM_Ale_new_results.RData")
-output_rds <- file.path(output_dir, "KELM_Ale_new_results.rds")
+output_file <- file.path(output_dir, "KELM_Ale_new_results_largetrain.RData")
+output_rds <- file.path(output_dir, "KELM_Ale_new_results_largetrain.rds")
 
 save(
   results_all,

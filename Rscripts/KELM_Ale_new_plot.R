@@ -9,7 +9,7 @@ wd = paste0(choose_wd,"FGMRandomBlocks/Rscripts/")
 setwd(wd)
 
 # Load results ------------------------------------------------------------
-results_file <- file.path(wd, "save", "KELM_Ale_new_results.RData")
+results_file <- file.path(wd, "save", "KELM_Ale_new_results_largetrain.RData")
 load(results_file)
 
 # Plot options ------------------------------------------------------------
@@ -20,6 +20,12 @@ if (!dir.exists(img_dir)) {
 }
 
 plot_accuracy_curves <- function() {
+  x_offset <- 0.25
+  x_rbf <- accuracy_curve_rbf_cv$p_basis - x_offset
+  x_custom <- accuracy_curve_custom$p_basis + x_offset
+  x_ticks <- sort(unique(c(accuracy_curve_rbf_cv$p_basis, accuracy_curve_custom$p_basis)))
+  xlim_acc <- range(c(x_rbf, x_custom), na.rm = TRUE)
+  
   ylim_acc <- range(
     c(
       accuracy_curve_rbf_cv$mean_accuracy - accuracy_curve_rbf_cv$sd_accuracy,
@@ -31,21 +37,24 @@ plot_accuracy_curves <- function() {
   )
   
   plot(
-    x = accuracy_curve_rbf_cv$p_basis,
+    x = x_rbf,
     y = accuracy_curve_rbf_cv$mean_accuracy,
     type = "b",
     pch = 16,
     lwd = 3,
+    xlim = xlim_acc,
     ylim = ylim_acc,
+    xaxt = "n",
     xlab = "Dimension",
     ylab = "Mean accuracy",
     main = "Mean Test Accuracy over Repetitions"
   )
+  axis(1, at = x_ticks, labels = x_ticks)
   
   arrows(
-    x0 = accuracy_curve_rbf_cv$p_basis,
+    x0 = x_rbf,
     y0 = accuracy_curve_rbf_cv$mean_accuracy - accuracy_curve_rbf_cv$sd_accuracy,
-    x1 = accuracy_curve_rbf_cv$p_basis,
+    x1 = x_rbf,
     y1 = accuracy_curve_rbf_cv$mean_accuracy + accuracy_curve_rbf_cv$sd_accuracy,
     angle = 90,
     code = 3,
@@ -54,7 +63,7 @@ plot_accuracy_curves <- function() {
   )
   
   lines(
-    x = accuracy_curve_custom$p_basis,
+    x = x_custom,
     y = accuracy_curve_custom$mean_accuracy,
     type = "b",
     pch = 17,
@@ -63,9 +72,9 @@ plot_accuracy_curves <- function() {
   )
   
   arrows(
-    x0 = accuracy_curve_custom$p_basis,
+    x0 = x_custom,
     y0 = accuracy_curve_custom$mean_accuracy - accuracy_curve_custom$sd_accuracy,
-    x1 = accuracy_curve_custom$p_basis,
+    x1 = x_custom,
     y1 = accuracy_curve_custom$mean_accuracy + accuracy_curve_custom$sd_accuracy,
     angle = 90,
     code = 3,
@@ -134,15 +143,15 @@ plot_gamma_curve <- function() {
 
 # Render plots ------------------------------------------------------------
 if (save_img) {
-  png(file.path(img_dir, "KELM_accuracy_curves.png"), width = 1400, height = 900, res = 140)
+  png(file.path(img_dir, "KELM_accuracy_curves_largetrain.png"), width = 1400, height = 900, res = 140)
   plot_accuracy_curves()
   dev.off()
   
-  png(file.path(img_dir, "KELM_accuracy_boxplots.png"), width = 1800, height = 1000, res = 140)
+  png(file.path(img_dir, "KELM_accuracy_boxplots_largetrain.png"), width = 1800, height = 1000, res = 140)
   plot_accuracy_boxplots()
   dev.off()
   
-  png(file.path(img_dir, "KELM_gamma_curve.png"), width = 1400, height = 900, res = 140)
+  png(file.path(img_dir, "KELM_gamma_curve_largetrain.png"), width = 1400, height = 900, res = 140)
   plot_gamma_curve()
   dev.off()
 }

@@ -3,7 +3,7 @@ wd_pc_ale = "C:/Users/colom/FGMRandomBlocks/"
 wd_pc_luciano = "C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//FGMRandomBlocks"
 wd_bocconi = "/home/colombi/FGMRandomBlocks/"
 wd_vec = c(wd_pc_ale,wd_pc_luciano,wd_bocconi)
-choose_wd = wd_vec[4] # <--- modify here to select the wd according to the user
+choose_wd = wd_vec[3] # <--- modify here to select the wd according to the user
 wd = paste0(choose_wd,"./")
 setwd(wd)
 

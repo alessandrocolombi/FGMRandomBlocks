@@ -1,5 +1,11 @@
-
-setwd("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//FGMRandomBlocks//Rscripts")
+# wd ----------------------------------------------------------------------
+wd_pc_ale = "C:/Users/colom/FGMRandomBlocks/"
+wd_pc_luciano = "C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//FGMRandomBlocks"
+wd_bocconi = "/home/colombi/FGMRandomBlocks/"
+wd_vec = c(wd_pc_ale,wd_pc_luciano,wd_bocconi)
+choose_wd = wd_vec[1] # <--- modify here to select the wd according to the user
+wd = paste0(choose_wd,"./")
+setwd(wd)
 
 # Load libraries ----------------------------------------------------------
 
@@ -25,18 +31,11 @@ library("lattice")
 
 # Load custom functions ---------------------------------------------------
 
-# sourceCpp("../src/wade.cpp")
-# Rcpp::sourceCpp('../src/UpdateParamsGSL.cpp')
-source("../R/utility_functions.R")
-source("../R/bulky_functions.R")
-# source("../R/data_generation.R")
-
-# this one because it does not load from FGM the get_things script, I do not know why!
-source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//get_things.R")
-# this one for modified graph sampling function
-source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//bdgraph.R")
-# this one is to load optimized Gibbs
-source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//Gibbs_memory_optimized.R")
+source("./utility_functions.R")
+source("./bulky_functions.R")
+source("./get_things.R")
+source("./bdgraph.R")
+source("./Gibbs_memory_optimized.R")
 
 # Simulation Set up --------------------------------------------------------
 ## Partition --------------------------------------------------------------
@@ -104,7 +103,7 @@ set.seed(seed)
 n = 500
 d = 3
 U = diag(p)
-Nrep = 50
+Nrep = 2 # <---
 
 Omega_true_arr = BDgraph::rgwish(n = Nrep, adj = Gtrue, b = d, D = U)
 dim(Omega_true_arr)
@@ -158,7 +157,14 @@ initialization_values_h = set_initialization_h(
 algorithm_graph <- "rjmcmc"
 etas <- c(0, 0.5, 0.75, 0.9)
 
-niter   <- 200000
+## Run options ------------------------------------------------------------
+# Set each option to TRUE/FALSE to decide which initial partitions are run
+# and saved for every pair (data_idx, eta).
+run_rho0_1     <- TRUE
+run_rho0_shift <- FALSE
+run_rho0_SM    <- FALSE
+
+niter   <- 200#000 # <---
 burn_in <- 0
 thin = 10
 algorithm <- "rjmcmc"
@@ -170,124 +176,152 @@ dir.create(out_dir, showWarnings = FALSE)
 
 
 # Random partition --------------------------------------------------------
+cat("\nConfigurations to run:\n")
+cat("  rho0_1     = ", run_rho0_1, "\n", sep = "")
+cat("  rho0_shift = ", run_rho0_shift, "\n", sep = "")
+cat("  rho0_SM    = ", run_rho0_SM, "\n", sep = "")
+
 for(data_idx in 1:Nrep){
+  cat("\n","--- Repetitions ",data_idx,"/",Nrep," --- ","\n")
   initialization_values_h$Beta = t(data_list[[data_idx]])
   for (eta in etas) {
     
-    message("  eta = ", eta)
-    
-    chain_rho0_1 <- Gibbs_sampler_update_h_optimized(
-      set_UpdateParamsGSL_list = NULL,
-      niter,
-      initialization_values_h,
-      alpha_target       = 0.234,
-      alpha_add          = 0.5,
-      adaptation_step    = 1 / (10 * p),
-      seed               = 22111996,
-      update_sigma_prior = TRUE,
-      update_theta_prior = TRUE,
-      update_weights     = TRUE,
-      update_partition   = TRUE,
-      update_graph       = TRUE,
-      perform_shuffle    = TRUE,
-      update_gamma       = TRUE,
-      rho_0              = rho0_1,
-      eta                = eta,
-      compute_partition_update_info = FALSE,
-      sample_eta         = FALSE,
-      algorithm_graph    = algorithm_graph,
-      rj_iters           = 1,
-      thin_save = thin,
-      keep_beta = F
-    )
-    chain_rho0_shift <- Gibbs_sampler_update_h_optimized(
-      set_UpdateParamsGSL_list = NULL,
-      niter,
-      initialization_values_h,
-      alpha_target       = 0.234,
-      alpha_add          = 0.5,
-      adaptation_step    = 1 / (10 * p),
-      seed               = 22111996,
-      update_sigma_prior = TRUE,
-      update_theta_prior = TRUE,
-      update_weights     = TRUE,
-      update_partition   = TRUE,
-      update_graph       = TRUE,
-      perform_shuffle    = TRUE,
-      update_gamma       = TRUE,
-      rho_0              = rho0_shift,
-      eta                = eta,
-      compute_partition_update_info = FALSE,
-      sample_eta         = FALSE,
-      algorithm_graph    = algorithm_graph,
-      rj_iters           = 1,
-      thin_save = thin,
-      keep_beta = F
-    )
-    chain_rho0_SM <- Gibbs_sampler_update_h_optimized(
-      set_UpdateParamsGSL_list = NULL,
-      niter,
-      initialization_values_h,
-      alpha_target       = 0.234,
-      alpha_add          = 0.5,
-      adaptation_step    = 1 / (10 * p),
-      seed               = 22111996,
-      update_sigma_prior = TRUE,
-      update_theta_prior = TRUE,
-      update_weights     = TRUE,
-      update_partition   = TRUE,
-      update_graph       = TRUE,
-      perform_shuffle    = TRUE,
-      update_gamma       = TRUE,
-      rho_0              = rho0_SM,
-      eta                = eta,
-      compute_partition_update_info = FALSE,
-      sample_eta         = FALSE,
-      algorithm_graph    = algorithm_graph,
-      rj_iters           = 1,
-      thin_save = thin,
-      keep_beta = F
-    )
     eta_chr <- as.character(eta)
     
-    saveRDS(
-      chain_rho0_1,
-      file = file.path(
-        out_dir,
-        paste0(
-          "simul_chain_rho0_1_eta_", eta_chr,"_nsimul_",data_idx,
-          "_niter", niter,
-          "_thin", thin,
-          ".rds"
+    if(run_rho0_1){
+      message("  eta = ", eta, " | rho0_1")
+      
+      ## First run: rho_0 is the true partition
+      chain_rho0_1 <- Gibbs_sampler_update_h_optimized(
+        set_UpdateParamsGSL_list = NULL,
+        niter,
+        initialization_values_h,
+        alpha_target       = 0.234,
+        alpha_add          = 0.5,
+        adaptation_step    = 1 / (10 * p),
+        seed               = 22111996,
+        update_sigma_prior = TRUE,
+        update_theta_prior = TRUE,
+        update_weights     = TRUE,
+        update_partition   = TRUE,
+        update_graph       = TRUE,
+        perform_shuffle    = TRUE,
+        update_gamma       = TRUE,
+        rho_0              = rho0_1,
+        eta                = eta,
+        compute_partition_update_info = FALSE,
+        sample_eta         = FALSE,
+        algorithm_graph    = algorithm_graph,
+        rj_iters           = 1,
+        thin_save = thin,
+        keep_beta = F
+      )
+      
+      saveRDS(
+        chain_rho0_1,
+        file = file.path(
+          out_dir,
+          paste0(
+            "SS_rho0_1_eta_", eta_chr,"_Nsim_",data_idx,
+            "_niter", niter,
+            "_thin", thin,
+            ".rds"
+          )
         )
       )
-    )
-    saveRDS(
-      chain_rho0_shift,
-      file = file.path(
-        out_dir,
-        paste0(
-          "simul_chain_rho0_shift_eta_", eta_chr,"_nsimul_",data_idx,
-          "_niter", niter,
-          "_thin", thin,
-          ".rds"
-        )
-      )
-    )
-    saveRDS(
-      chain_rho0_SM,
-      file = file.path(
-        out_dir,
-        paste0(
-          "simul_chain_rho0_SM_eta_", eta_chr,"_nsimul_",data_idx,
-          "_niter", niter,
-          "_thin", thin,
-          ".rds"
-        )
-      )
-    )
+      
+      rm(chain_rho0_1)
+    }
     
-    rm(chain_rho0_1,chain_rho0_shift,chain_rho0_SM)
+    if(run_rho0_shift){
+      message("  eta = ", eta, " | rho0_shift")
+      
+      ## Second run: rho_0 is the shifted wrt the true partition
+      chain_rho0_shift <- Gibbs_sampler_update_h_optimized(
+        set_UpdateParamsGSL_list = NULL,
+        niter,
+        initialization_values_h,
+        alpha_target       = 0.234,
+        alpha_add          = 0.5,
+        adaptation_step    = 1 / (10 * p),
+        seed               = 22111996,
+        update_sigma_prior = TRUE,
+        update_theta_prior = TRUE,
+        update_weights     = TRUE,
+        update_partition   = TRUE,
+        update_graph       = TRUE,
+        perform_shuffle    = TRUE,
+        update_gamma       = TRUE,
+        rho_0              = rho0_shift,
+        eta                = eta,
+        compute_partition_update_info = FALSE,
+        sample_eta         = FALSE,
+        algorithm_graph    = algorithm_graph,
+        rj_iters           = 1,
+        thin_save = thin,
+        keep_beta = F
+      )
+      
+      saveRDS(
+        chain_rho0_shift,
+        file = file.path(
+          out_dir,
+          paste0(
+            "SS_rho0_shift_eta_", eta_chr,"_Nsim_",data_idx,
+            "_niter", niter,
+            "_thin", thin,
+            ".rds"
+          )
+        )
+      )
+      
+      rm(chain_rho0_shift)
+    }
+    
+    if(run_rho0_SM){
+      message("  eta = ", eta, " | rho0_SM")
+      
+      ## Third run: rho_0 is a split-merge modification of the true partition
+      chain_rho0_SM <- Gibbs_sampler_update_h_optimized(
+        set_UpdateParamsGSL_list = NULL,
+        niter,
+        initialization_values_h,
+        alpha_target       = 0.234,
+        alpha_add          = 0.5,
+        adaptation_step    = 1 / (10 * p),
+        seed               = 22111996,
+        update_sigma_prior = TRUE,
+        update_theta_prior = TRUE,
+        update_weights     = TRUE,
+        update_partition   = TRUE,
+        update_graph       = TRUE,
+        perform_shuffle    = TRUE,
+        update_gamma       = TRUE,
+        rho_0              = rho0_SM,
+        eta                = eta,
+        compute_partition_update_info = FALSE,
+        sample_eta         = FALSE,
+        algorithm_graph    = algorithm_graph,
+        rj_iters           = 1,
+        thin_save = thin,
+        keep_beta = F
+      )
+      
+      saveRDS(
+        chain_rho0_SM,
+        file = file.path(
+          out_dir,
+          paste0(
+            "SS_rho0_SM_eta_", eta_chr,"_Nsim_",data_idx,
+            "_niter", niter,
+            "_thin", thin,
+            ".rds"
+          )
+        )
+      )
+      
+      rm(chain_rho0_SM)
+    }
   }
 }
 

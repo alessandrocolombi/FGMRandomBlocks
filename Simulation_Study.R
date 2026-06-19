@@ -1,0 +1,295 @@
+
+setwd("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//FGMRandomBlocks//Rscripts")
+
+# Load libraries ----------------------------------------------------------
+
+library("tidyverse")
+#library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
+library("mvtnorm")
+library("salso")
+library("FGM") #  devtools::install_github("alessandrocolombi/FGMpackage")
+library("gmp") # che fa?
+library("mcclust")
+library("mcclust.ext")
+library("logr")
+library("tidygraph")
+library("ggraph")
+library("igraph")
+library("Rcpp")
+library("RcppArmadillo")
+library("RcppEigen")
+library('RcppGSL')
+# library("fda")
+library("coda")
+library("lattice")
+
+# Load custom functions ---------------------------------------------------
+
+# sourceCpp("../src/wade.cpp")
+# Rcpp::sourceCpp('../src/UpdateParamsGSL.cpp')
+source("../R/utility_functions.R")
+source("../R/bulky_functions.R")
+# source("../R/data_generation.R")
+
+# this one because it does not load from FGM the get_things script, I do not know why!
+source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//get_things.R")
+# this one for modified graph sampling function
+source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//bdgraph.R")
+# this one is to load optimized Gibbs
+source("C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//Gibbs_memory_optimized.R")
+
+# Simulation Set up --------------------------------------------------------
+## Partition --------------------------------------------------------------
+rho_true = c(5,6,5,7,7,4,6)
+Ktrue = length(rho_true)
+p = sum(rho_true)
+
+rho0_1 = rho_true
+rho0_shift = c(3,7,7,5,7,3,8)
+rho0_SM = c(11,5,3,4,3,4,9,1) 
+sum(rho0_shift)
+sum(rho0_SM)
+## Graph ------------------------------------------------------------------
+Gsmall = matrix(0,nrow = Ktrue, ncol = Ktrue)
+Gsmall[1,2] <- Gsmall[2,5] <- Gsmall[2,6] <- 1
+Gsmall[3,6] <- Gsmall[3,7] <- Gsmall[5,7] <- 1
+diag(Gsmall) = rep(1,Ktrue)
+rho_true_starts = c(1,rho_true[1:(Ktrue-1)])
+rho_true_ends = rho_true
+cum_starts = cumsum(rho_true_starts)
+cum_ends = cumsum(rho_true_ends)
+Gtrue = matrix(0,p,p)
+for(i in 1:(Ktrue-1)){
+  for(j in (i+1):Ktrue){
+    if(Gsmall[i,j] > 0){
+      Gtrue[cum_starts[i]:cum_ends[i],cum_starts[j]:cum_ends[j]] <- 1
+    }
+  }
+}
+Gtrue = Gtrue + t(Gtrue)
+for(i in 1:Ktrue){
+  if(Gsmall[i,i] > 0)
+    Gtrue[cum_starts[i]:cum_ends[i],cum_starts[i]:cum_ends[i]] <- 1
+}
+
+# # visualize graph and three different partitions
+# z0_1 = rho_to_z(rho0_1) 
+# z0_shift = rho_to_z(rho0_shift) 
+# z0_SM = rho_to_z(rho0_SM) 
+# cp_true <- which(diff(z0_1) != 0)
+# cp_shift <- which(diff(z0_shift) != 0)
+# cp_SM <- which(diff(z0_SM) != 0)
+# ACheatmap_nolegend(
+#   Gtrue,
+#   use_x11_device = FALSE,
+#   center_value = NULL,
+#   col.lower = "white"
+# )
+# for(k in cp_true){
+#   abline(v = (k - 0.5)/(p-1), col = "red", lwd = 2)
+#   abline(h = (k - 0.5)/(p-1), col = "red", lwd = 2)
+# }
+# for(k in cp_shift){
+#   abline(v = (k - 0.5)/(p-1), col = "red", lwd = 2)
+#   abline(h = (k - 0.5)/(p-1), col = "red", lwd = 2)
+# }
+# for(k in cp_SM){
+#   abline(v = (k - 0.5)/(p-1), col = "red", lwd = 2)
+#   abline(h = (k - 0.5)/(p-1), col = "red", lwd = 2)
+# }
+
+## Beta simulation -----------------------------------------------------------
+seed = 123131
+set.seed(seed)
+n = 500
+d = 3
+U = diag(p)
+Nrep = 50
+
+Omega_true_arr = BDgraph::rgwish(n = Nrep, adj = Gtrue, b = d, D = U)
+dim(Omega_true_arr)
+
+# Nrep datasets, each one n x p
+data_list <- lapply(seq_len(Nrep), function(b) {
+  Omega_b <- Omega_true_arr[, , b]
+  Sigma_b <- solve(Omega_b)
+  
+  MASS::mvrnorm(
+    n = n,
+    mu = rep(0, p),
+    Sigma = Sigma_b
+  )
+})
+
+# Initialization ----------------------------------------------------------
+mat_ones <- matrix(1, nrow = 40, ncol = 40)  # start with all ones
+diag(mat_ones) <- 0                          # set diagonal to 0
+
+a_sigma = 1
+b_sigma = 1
+initialization_values_h = set_initialization_h(
+  Beta          = matrix(rnorm(n=p*n), nrow = p, ncol = n),
+  mu            = rep(0,p),
+  tau_eps       = 0,
+  K             = matrix(0,p,p),
+  G             = matrix(0,p,p),
+  z             = rep(1,p), 
+  rho           = p,
+  a_sigma       = a_sigma,
+  b_sigma       = b_sigma,
+  c_sigma       = 0.87908, 
+  d_sigma       = 0.93759, 
+  c_theta       = 0.87908, 
+  d_theta       = 0.93759, 
+  sigma         = 0.5,
+  theta         = 3,
+  weights_a0    = rep(1,p-1),
+  weights_d0    = rep(1,p-1),
+  total_weights = 0,
+  total_K       = matrix(0,p,p),
+  total_graphs  = matrix(0,p,p),
+  graph_start   = mat_ones,
+  graph_density = 0.5, 
+  beta_sig2     = 0.1, 
+  d             = 3,
+  gamma = c(rep(0,p-1),1)
+) 
+
+algorithm_graph <- "rjmcmc"
+etas <- c(0, 0.5, 0.75, 0.9)
+
+niter   <- 200000
+burn_in <- 0
+thin = 10
+algorithm <- "rjmcmc"
+(niter-burn_in)/thin
+
+# Output directory
+out_dir <- "chains"
+dir.create(out_dir, showWarnings = FALSE)
+
+
+# Random partition --------------------------------------------------------
+for(data_idx in 1:Nrep){
+  initialization_values_h$Beta = t(data_list[[data_idx]])
+  for (eta in etas) {
+    
+    message("  eta = ", eta)
+    
+    chain_rho0_1 <- Gibbs_sampler_update_h_optimized(
+      set_UpdateParamsGSL_list = NULL,
+      niter,
+      initialization_values_h,
+      alpha_target       = 0.234,
+      alpha_add          = 0.5,
+      adaptation_step    = 1 / (10 * p),
+      seed               = 22111996,
+      update_sigma_prior = TRUE,
+      update_theta_prior = TRUE,
+      update_weights     = TRUE,
+      update_partition   = TRUE,
+      update_graph       = TRUE,
+      perform_shuffle    = TRUE,
+      update_gamma       = TRUE,
+      rho_0              = rho0_1,
+      eta                = eta,
+      compute_partition_update_info = FALSE,
+      sample_eta         = FALSE,
+      algorithm_graph    = algorithm_graph,
+      rj_iters           = 1,
+      thin_save = thin,
+      keep_beta = F
+    )
+    chain_rho0_shift <- Gibbs_sampler_update_h_optimized(
+      set_UpdateParamsGSL_list = NULL,
+      niter,
+      initialization_values_h,
+      alpha_target       = 0.234,
+      alpha_add          = 0.5,
+      adaptation_step    = 1 / (10 * p),
+      seed               = 22111996,
+      update_sigma_prior = TRUE,
+      update_theta_prior = TRUE,
+      update_weights     = TRUE,
+      update_partition   = TRUE,
+      update_graph       = TRUE,
+      perform_shuffle    = TRUE,
+      update_gamma       = TRUE,
+      rho_0              = rho0_shift,
+      eta                = eta,
+      compute_partition_update_info = FALSE,
+      sample_eta         = FALSE,
+      algorithm_graph    = algorithm_graph,
+      rj_iters           = 1,
+      thin_save = thin,
+      keep_beta = F
+    )
+    chain_rho0_SM <- Gibbs_sampler_update_h_optimized(
+      set_UpdateParamsGSL_list = NULL,
+      niter,
+      initialization_values_h,
+      alpha_target       = 0.234,
+      alpha_add          = 0.5,
+      adaptation_step    = 1 / (10 * p),
+      seed               = 22111996,
+      update_sigma_prior = TRUE,
+      update_theta_prior = TRUE,
+      update_weights     = TRUE,
+      update_partition   = TRUE,
+      update_graph       = TRUE,
+      perform_shuffle    = TRUE,
+      update_gamma       = TRUE,
+      rho_0              = rho0_SM,
+      eta                = eta,
+      compute_partition_update_info = FALSE,
+      sample_eta         = FALSE,
+      algorithm_graph    = algorithm_graph,
+      rj_iters           = 1,
+      thin_save = thin,
+      keep_beta = F
+    )
+    eta_chr <- as.character(eta)
+    
+    saveRDS(
+      chain_rho0_1,
+      file = file.path(
+        out_dir,
+        paste0(
+          "simul_chain_rho0_1_eta_", eta_chr,"_nsimul_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
+        )
+      )
+    )
+    saveRDS(
+      chain_rho0_shift,
+      file = file.path(
+        out_dir,
+        paste0(
+          "simul_chain_rho0_shift_eta_", eta_chr,"_nsimul_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
+        )
+      )
+    )
+    saveRDS(
+      chain_rho0_SM,
+      file = file.path(
+        out_dir,
+        paste0(
+          "simul_chain_rho0_SM_eta_", eta_chr,"_nsimul_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
+        )
+      )
+    )
+    
+    rm(chain_rho0_1,chain_rho0_shift,chain_rho0_SM)
+  }
+}
+
+
+

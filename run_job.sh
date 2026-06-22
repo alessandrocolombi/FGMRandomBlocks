@@ -21,8 +21,10 @@ pidfile="$LOGDIR/${base}.pid"             # pid file path
 # Limit threaded numeric libraries inside each parallel R worker.
 # Without these, 15 R workers can each spawn many BLAS/OpenMP threads.
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+export OMP_THREAD_LIMIT="${OMP_THREAD_LIMIT:-1}"
 export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
+export MKL_DOMAIN_NUM_THREADS="${MKL_DOMAIN_NUM_THREADS:-1}"
 export BLIS_NUM_THREADS="${BLIS_NUM_THREADS:-1}"
 export VECLIB_MAXIMUM_THREADS="${VECLIB_MAXIMUM_THREADS:-1}"
 export RCPP_PARALLEL_NUM_THREADS="${RCPP_PARALLEL_NUM_THREADS:-1}"
@@ -39,5 +41,6 @@ echo "$pid" > "$pidfile"                  # save PID for status/kill
 echo "Started: $SCRIPT"                   # info
 echo "PID: $pid  (saved in $pidfile)"     # info
 echo "Log: $log"                          # info
+echo "Stop: kill -- -$pid"                # kill process group: master + workers
 
 # make it runnable typing: chmod +x run_job.sh

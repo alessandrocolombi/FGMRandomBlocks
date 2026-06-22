@@ -7,6 +7,36 @@ choose_wd = wd_vec[3] # <--- modify here to select the wd according to the user
 wd = paste0(choose_wd,"./")
 setwd(wd)
 
+# Thread limits -----------------------------------------------------------
+# Keep each parallel R worker single-threaded. This avoids using
+# n_cores * BLAS/OpenMP threads on shared servers.
+limit_threaded_libraries = function(n_threads = 1L){
+  n_threads = as.character(n_threads)
+  Sys.setenv(
+    OMP_NUM_THREADS = n_threads,
+    OMP_THREAD_LIMIT = n_threads,
+    OPENBLAS_NUM_THREADS = n_threads,
+    MKL_NUM_THREADS = n_threads,
+    MKL_DOMAIN_NUM_THREADS = n_threads,
+    BLIS_NUM_THREADS = n_threads,
+    VECLIB_MAXIMUM_THREADS = n_threads,
+    RCPP_PARALLEL_NUM_THREADS = n_threads,
+    NUMEXPR_NUM_THREADS = n_threads,
+    GOTO_NUM_THREADS = n_threads,
+    OMP_DYNAMIC = "FALSE",
+    MKL_DYNAMIC = "FALSE"
+  )
+
+  if(requireNamespace("RhpcBLASctl", quietly = TRUE)){
+    RhpcBLASctl::blas_set_num_threads(as.integer(n_threads))
+    RhpcBLASctl::omp_set_num_threads(as.integer(n_threads))
+  }
+
+  invisible(NULL)
+}
+
+limit_threaded_libraries(1L)
+
 # Load libraries ----------------------------------------------------------
 
 library("tidyverse")
@@ -380,6 +410,7 @@ parallel::clusterExport(
     "algorithm_graph", "sampler_seed",
     "alpha_target", "alpha_add", "adaptation_step",
     "rj_iters", "keep_beta",
+    "limit_threaded_libraries",
     "make_chain_file", "fmt_path",
     "run_single_chain", "run_single_rep"
   ),
@@ -387,8 +418,9 @@ parallel::clusterExport(
 )
 
 for(worker_id in seq_along(cl)){
-  parallel::clusterCall(cl[worker_id], function(wd, source_paths){
+  parallel::clusterCall(cl[worker_id], function(wd, source_paths, limit_threaded_libraries){
     setwd(wd)
+    limit_threaded_libraries(1L)
     suppressPackageStartupMessages({
       library("tidyverse")
       #library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
@@ -413,7 +445,7 @@ for(worker_id in seq_along(cl)){
       source(path)
 
     NULL
-  }, wd = wd, source_paths = source_paths)
+  }, wd = wd, source_paths = source_paths, limit_threaded_libraries = limit_threaded_libraries)
 }
 
 results = parallel::parLapplyLB(cl, seq_len(Nrep), function(data_idx){

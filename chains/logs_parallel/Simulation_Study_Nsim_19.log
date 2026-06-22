@@ -1,0 +1,7 @@
+[2026-06-22 08:26:17] START repetition 19
+Start chain
+  data_idx: 19
+  eta:      0
+  config:   rho0_1
+  fit_file: chains/SS_rho0_1_eta_0_Nsim_19_niter2e+05_thin10.rds
+  |                                                                              |                                                                      |   0%

@@ -151,7 +151,7 @@ if(length(rho0_configs) == 0)
 avail_cores = parallel::detectCores(logical = TRUE)
 if(is.na(avail_cores))
   avail_cores = 1L
-requested_cores = 30L # <---
+requested_cores = 15L # <---
 n_cores = min(requested_cores, avail_cores, Nrep)
 
 ## MCMC options -----------------------------------------------------------

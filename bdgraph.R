@@ -161,7 +161,9 @@ post_graph_sampling = function( data, rho, n = NULL, method = "ggm", algorithm =
     if( df.prior < 3  ) stop( " 'prior.df' must be >= 3" )
     if( iter < burnin ) stop( " Number of iteration must be more than number of burn-in" )
     burnin <- floor( burnin )
-    #if( print > iter ) print = iter
+    if(is.null(print) || !is.finite(print) || print <= 0)
+      print = iter + 1L
+    print = as.integer(print)
     
     
     if( !is.matrix( data ) & !is.data.frame( data ) ) stop( "Data must be a matrix or dataframe" )

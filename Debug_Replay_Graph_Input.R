@@ -14,6 +14,7 @@ if(!file.exists(dump_file))
 library("FGM")
 
 source("./utility_functions.R")
+source("./bulky_functions.R")
 source("./get_things.R")
 source("./bdgraph.R")
 

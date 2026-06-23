@@ -332,7 +332,8 @@ run_single_chain = function(config, eta, data_idx, init_values,
       rj_iters           = rj_iters,
       thin_save          = thin,
       keep_beta          = keep_beta,
-      show_progress      = FALSE
+      show_progress      = FALSE,
+      debug_sampler      = FALSE
     )
 
     append_log(
@@ -431,11 +432,21 @@ run_single_rep = function(data_idx, data_list, initialization_values_h,
   out
 }
 
+cat(sprintf("[%s] START whole script: %s\n",
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "Simulation_Study_parallel.R"))
+flush.console()
+
+cat(sprintf("[%s] Creating PSOCK cluster with %s workers\n",
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"), n_cores))
+flush.console()
+
 cl = parallel::makeCluster(n_cores)
 on.exit(parallel::stopCluster(cl), add = TRUE)
 
-cat(sprintf("[%s] START whole script: %s\n",
-            format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "Simulation_Study_parallel.R"))
+cat(sprintf("[%s] Cluster created\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+flush.console()
+
+cat(sprintf("[%s] Exporting objects to workers\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
 flush.console()
 
 parallel::clusterExport(
@@ -457,7 +468,13 @@ parallel::clusterExport(
   envir = environment()
 )
 
+cat(sprintf("[%s] Worker object export completed\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+flush.console()
+
 for(worker_id in seq_along(cl)){
+  cat(sprintf("[%s] Loading packages/sources on worker %s/%s\n",
+              format(Sys.time(), "%Y-%m-%d %H:%M:%S"), worker_id, length(cl)))
+  flush.console()
   parallel::clusterCall(cl[worker_id], function(wd, source_paths, limit_threaded_libraries){
     setwd(wd)
     limit_threaded_libraries(1L)
@@ -486,7 +503,13 @@ for(worker_id in seq_along(cl)){
 
     NULL
   }, wd = wd, source_paths = source_paths, limit_threaded_libraries = limit_threaded_libraries)
+  cat(sprintf("[%s] Worker %s/%s ready\n",
+              format(Sys.time(), "%Y-%m-%d %H:%M:%S"), worker_id, length(cl)))
+  flush.console()
 }
+
+cat(sprintf("[%s] Starting parallel repetitions\n", format(Sys.time(), "%Y-%m-%d %H:%M:%S")))
+flush.console()
 
 results = parallel::parLapplyLB(cl, seq_len(Nrep), function(data_idx){
   run_single_rep(

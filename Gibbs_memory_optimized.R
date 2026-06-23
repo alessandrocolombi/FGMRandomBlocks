@@ -9,7 +9,14 @@ Gibbs_sampler_h_fast = function(
     options,
     s,
     rho_0,
-    algorithm){
+    algorithm,
+    debug_sampler = FALSE){
+  
+  if(debug_sampler){
+    message(sprintf("[%s] inner iter %s: enter Gibbs_sampler_h_fast",
+                    format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+    flush.console()
+  }
   
   n = nrow(data)
   p = ncol(data)
@@ -43,6 +50,12 @@ Gibbs_sampler_h_fast = function(
   # ===================== GRAPH UPDATE =====================
 
   if (options$update_graph) {
+    if(debug_sampler){
+      message(sprintf("[%s] inner iter %s: start post_graph_sampling",
+                      format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+      flush.console()
+    }
+    
     output = post_graph_sampling(
       data, rho, n,
       method = "ggm",
@@ -56,6 +69,12 @@ Gibbs_sampler_h_fast = function(
       beta_params = beta_params
     )
     
+    if(debug_sampler){
+      message(sprintf("[%s] inner iter %s: end post_graph_sampling",
+                      format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+      flush.console()
+    }
+    
     graph  = output$last_graph
     last_K = output$last_K
     
@@ -67,6 +86,12 @@ Gibbs_sampler_h_fast = function(
   }
   
   # ===================== GAMMA UPDATE =====================
+  if(debug_sampler){
+    message(sprintf("[%s] inner iter %s: start gamma update",
+                    format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+    flush.console()
+  }
+  
   if(options$update_gamma){
     eta_sampled = if(options$sample_eta) runif(1,0,0.99) else eta
     
@@ -88,6 +113,12 @@ Gibbs_sampler_h_fast = function(
   }
   
   # ===================== PARTITION UPDATE =====================
+  if(debug_sampler){
+    message(sprintf("[%s] inner iter %s: start partition update",
+                    format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+    flush.console()
+  }
+  
   if(options$update_partition){
     
     # ===== KEEP ORIGINAL SAFE LOGIC =====
@@ -165,6 +196,12 @@ Gibbs_sampler_h_fast = function(
   }
   
   # ===================== PYP =====================
+  if(debug_sampler){
+    message(sprintf("[%s] inner iter %s: start PYP updates",
+                    format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
+    flush.console()
+  }
+  
   if(options$update_sigma_prior){
     candidate <- runif(1, max(0,-theta_prior), 1)
     alpha_MH <- full_conditional_sigma(candidate, theta_prior, rho,
@@ -481,7 +518,8 @@ Gibbs_sampler_update_h_optimized = function(
     rj_iters,
     thin_save = 100,
     keep_beta = FALSE,
-    show_progress = TRUE){
+    show_progress = TRUE,
+    debug_sampler = FALSE){
   set.seed(seed)
   
   # ===== DIMENSIONS =====
@@ -568,6 +606,11 @@ Gibbs_sampler_update_h_optimized = function(
     pb = txtProgressBar(min = 2, max = niter, style = 3)
   
   for(s in 2:niter){
+    if(debug_sampler){
+      message(sprintf("[%s] outer iter %s/%s: start",
+                      format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s, niter))
+      flush.console()
+    }
     
     if(!is.null(set_UpdateParamsGSL_list)){
       # ===================== PARAMETER UPDATE =====================
@@ -642,8 +685,15 @@ Gibbs_sampler_update_h_optimized = function(
       options = options,
       s = s,
       rho_0 = rho_0,
-      algorithm = algorithm_graph
+      algorithm = algorithm_graph,
+      debug_sampler = debug_sampler
     )
+    
+    if(debug_sampler){
+      message(sprintf("[%s] outer iter %s/%s: end inner Gibbs",
+                      format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s, niter))
+      flush.console()
+    }
     
     # ===================== UPDATE STATE =====================
     rho <- res$rho

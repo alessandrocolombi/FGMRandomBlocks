@@ -27,6 +27,38 @@ library("coda")
 library("lattice")
 library("parallel")
 
+cat("R version: ", R.version.string, "\n", sep = "")
+cat("FGM version: ", as.character(utils::packageVersion("FGM")), "\n", sep = "")
+cat("FGM path: ", find.package("FGM"), "\n", sep = "")
+cat(
+  "Thread env: ",
+  paste(
+    c(
+      "OMP_NUM_THREADS",
+      "OMP_THREAD_LIMIT",
+      "OPENBLAS_NUM_THREADS",
+      "MKL_NUM_THREADS",
+      "MKL_DOMAIN_NUM_THREADS",
+      "RCPP_PARALLEL_NUM_THREADS"
+    ),
+    Sys.getenv(
+      c(
+        "OMP_NUM_THREADS",
+        "OMP_THREAD_LIMIT",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "MKL_DOMAIN_NUM_THREADS",
+        "RCPP_PARALLEL_NUM_THREADS"
+      ),
+      unset = ""
+    ),
+    sep = "=",
+    collapse = ", "
+  ),
+  "\n",
+  sep = ""
+)
+
 # Load custom functions ---------------------------------------------------
 
 source("./utility_functions.R")
@@ -161,6 +193,7 @@ etas <- c(0, 0.5, 0.75, 0.9)
 run_rho0_1     <- TRUE
 run_rho0_shift <- FALSE
 run_rho0_SM    <- FALSE
+debug_sampler <- identical(Sys.getenv("FGM_DEBUG_SAMPLER"), "1")
 
 niter   <- 20#0000 # <---
 burn_in <- 0
@@ -178,6 +211,7 @@ cat("\nConfigurations to run:\n")
 cat("  rho0_1     = ", run_rho0_1, "\n", sep = "")
 cat("  rho0_shift = ", run_rho0_shift, "\n", sep = "")
 cat("  rho0_SM    = ", run_rho0_SM, "\n", sep = "")
+cat("  debug_sampler = ", debug_sampler, "\n", sep = "")
 
 for(data_idx in 1:Nrep){
   cat("\n","--- Repetitions ",data_idx,"/",Nrep," --- ","\n")
@@ -212,21 +246,26 @@ for(data_idx in 1:Nrep){
         algorithm_graph    = algorithm_graph,
         rj_iters           = 1,
         thin_save = thin,
-        keep_beta = F
+        keep_beta = F,
+        show_progress = !debug_sampler,
+        debug_sampler = debug_sampler
       )
+      message("  sampler returned | eta = ", eta, " | rho0_1")
       
-      saveRDS(
-        chain_rho0_1,
-        file = file.path(
-          out_dir,
-          paste0(
-            "SS_rho0_1_eta_", eta_chr,"_Nsim_",data_idx,
-            "_niter", niter,
-            "_thin", thin,
-            ".rds"
-          )
+      fit_file <- file.path(
+        out_dir,
+        paste0(
+          "SS_rho0_1_eta_", eta_chr,"_Nsim_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
         )
       )
+      saveRDS(
+        chain_rho0_1,
+        file = fit_file
+      )
+      message("  saved ", fit_file)
       
       rm(chain_rho0_1)
     }
@@ -257,21 +296,26 @@ for(data_idx in 1:Nrep){
         algorithm_graph    = algorithm_graph,
         rj_iters           = 1,
         thin_save = thin,
-        keep_beta = F
+        keep_beta = F,
+        show_progress = !debug_sampler,
+        debug_sampler = debug_sampler
       )
+      message("  sampler returned | eta = ", eta, " | rho0_shift")
       
-      saveRDS(
-        chain_rho0_shift,
-        file = file.path(
-          out_dir,
-          paste0(
-            "SS_rho0_shift_eta_", eta_chr,"_Nsim_",data_idx,
-            "_niter", niter,
-            "_thin", thin,
-            ".rds"
-          )
+      fit_file <- file.path(
+        out_dir,
+        paste0(
+          "SS_rho0_shift_eta_", eta_chr,"_Nsim_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
         )
       )
+      saveRDS(
+        chain_rho0_shift,
+        file = fit_file
+      )
+      message("  saved ", fit_file)
       
       rm(chain_rho0_shift)
     }
@@ -302,21 +346,26 @@ for(data_idx in 1:Nrep){
         algorithm_graph    = algorithm_graph,
         rj_iters           = 1,
         thin_save = thin,
-        keep_beta = F
+        keep_beta = F,
+        show_progress = !debug_sampler,
+        debug_sampler = debug_sampler
       )
+      message("  sampler returned | eta = ", eta, " | rho0_SM")
       
-      saveRDS(
-        chain_rho0_SM,
-        file = file.path(
-          out_dir,
-          paste0(
-            "SS_rho0_SM_eta_", eta_chr,"_Nsim_",data_idx,
-            "_niter", niter,
-            "_thin", thin,
-            ".rds"
-          )
+      fit_file <- file.path(
+        out_dir,
+        paste0(
+          "SS_rho0_SM_eta_", eta_chr,"_Nsim_",data_idx,
+          "_niter", niter,
+          "_thin", thin,
+          ".rds"
         )
       )
+      saveRDS(
+        chain_rho0_SM,
+        file = fit_file
+      )
+      message("  saved ", fit_file)
       
       rm(chain_rho0_SM)
     }

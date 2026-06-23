@@ -157,7 +157,9 @@ initialization_values_h = set_initialization_h(
   gamma = c(rep(0,p-1),1)
 )
 
-algorithm_graph <- "rjmcmc"
+algorithm_graph <- Sys.getenv("FGM_GRAPH_ALGORITHM", unset = "rjmcmc")
+if(!algorithm_graph %in% c("rjmcmc", "bdmcmc", "rjmcmc.mpl"))
+  stop("FGM_GRAPH_ALGORITHM must be one of: rjmcmc, bdmcmc, rjmcmc.mpl")
 etas <- c(0, 0.5, 0.75, 0.9)
 
 ## Run options ------------------------------------------------------------
@@ -234,6 +236,7 @@ cat("\nParallel settings:\n")
 cat("  Nrep       = ", Nrep, "\n", sep = "")
 cat("  n_cores    = ", n_cores, "\n", sep = "")
 cat("  etas       = ", paste(etas, collapse = ", "), "\n", sep = "")
+cat("  algorithm_graph = ", algorithm_graph, "\n", sep = "")
 
 # Parallel MCMC runner ----------------------------------------------------
 

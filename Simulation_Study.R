@@ -184,7 +184,9 @@ initialization_values_h = set_initialization_h(
   gamma = c(rep(0,p-1),1)
 ) 
 
-algorithm_graph <- "rjmcmc"
+algorithm_graph <- Sys.getenv("FGM_GRAPH_ALGORITHM", unset = "rjmcmc")
+if(!algorithm_graph %in% c("rjmcmc", "bdmcmc", "rjmcmc.mpl"))
+  stop("FGM_GRAPH_ALGORITHM must be one of: rjmcmc, bdmcmc, rjmcmc.mpl")
 etas <- c(0, 0.5, 0.75, 0.9)
 
 ## Run options ------------------------------------------------------------
@@ -212,6 +214,7 @@ cat("  rho0_1     = ", run_rho0_1, "\n", sep = "")
 cat("  rho0_shift = ", run_rho0_shift, "\n", sep = "")
 cat("  rho0_SM    = ", run_rho0_SM, "\n", sep = "")
 cat("  debug_sampler = ", debug_sampler, "\n", sep = "")
+cat("  algorithm_graph = ", algorithm_graph, "\n", sep = "")
 
 for(data_idx in 1:Nrep){
   cat("\n","--- Repetitions ",data_idx,"/",Nrep," --- ","\n")

@@ -297,7 +297,8 @@ run_single_chain = function(config, eta, data_idx, init_values,
       algorithm_graph    = algorithm_graph,
       rj_iters           = rj_iters,
       thin_save          = thin,
-      keep_beta          = keep_beta
+      keep_beta          = keep_beta,
+      show_progress      = FALSE
     )
 
     saveRDS(chain, file = fit_file)

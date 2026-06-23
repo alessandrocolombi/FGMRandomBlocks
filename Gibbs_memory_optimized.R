@@ -480,7 +480,8 @@ Gibbs_sampler_update_h_optimized = function(
     algorithm_graph,
     rj_iters,
     thin_save = 100,
-    keep_beta = FALSE){
+    keep_beta = FALSE,
+    show_progress = TRUE){
   set.seed(seed)
   
   # ===== DIMENSIONS =====
@@ -563,7 +564,8 @@ Gibbs_sampler_update_h_optimized = function(
   
   save_idx <- 0
   
-  pb = txtProgressBar(min = 2, max = niter, style = 3)
+  if(show_progress)
+    pb = txtProgressBar(min = 2, max = niter, style = 3)
   
   for(s in 2:niter){
     
@@ -693,9 +695,11 @@ Gibbs_sampler_update_h_optimized = function(
       chains$gamma[[save_idx]] <- gamma
     }
     
-    setTxtProgressBar(pb, s)
+    if(show_progress)
+      setTxtProgressBar(pb, s)
   }
   
-  close(pb)
+  if(show_progress)
+    close(pb)
   return(chains)
 }

@@ -1,6 +1,0 @@
-[2026-06-22 08:33:59] START repetition 3
-Start chain
-  data_idx: 3
-  eta:      0
-  config:   rho0_1
-  fit_file: chains/SS_rho0_1_eta_0_Nsim_3_niter2e+05_thin10.rds

@@ -56,6 +56,18 @@ Gibbs_sampler_h_fast = function(
       flush.console()
     }
 
+    graph_print = suppressWarnings(
+      as.integer(Sys.getenv("FGM_GRAPH_PRINT", unset = "1"))
+    )
+    if(is.na(graph_print) || graph_print <= 0)
+      graph_print = 1L
+
+    graph_cores = suppressWarnings(
+      as.integer(Sys.getenv("FGM_GRAPH_CORES", unset = "1"))
+    )
+    if(is.na(graph_cores) || graph_cores <= 0)
+      graph_cores = 1L
+
     if(identical(Sys.getenv("FGM_DUMP_GRAPH_INPUT"), "1")){
       dump_dir = Sys.getenv("FGM_DUMP_GRAPH_INPUT_DIR", unset = "")
       if(!nzchar(dump_dir))
@@ -79,6 +91,8 @@ Gibbs_sampler_h_fast = function(
           n = n,
           algorithm = algorithm,
           rj_steps = options$rj_steps,
+          graph_print = graph_print,
+          graph_cores = graph_cores,
           graph = graph,
           beta_params = beta_params,
           threshold = 1e-8,
@@ -100,7 +114,8 @@ Gibbs_sampler_h_fast = function(
       burnin = 0,
       g.start = graph,
       save = TRUE,
-      print = 0,
+      print = graph_print,
+      cores = graph_cores,
       threshold = 1e-8,
       beta_params = beta_params
     )

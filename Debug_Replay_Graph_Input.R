@@ -29,9 +29,15 @@ algorithm = if(length(args) >= 2) {
 if(!algorithm %in% c("rjmcmc", "bdmcmc", "rjmcmc.mpl"))
   stop("algorithm must be one of: rjmcmc, bdmcmc, rjmcmc.mpl")
 
-print_period = as.integer(Sys.getenv("FGM_GRAPH_PRINT", unset = "1"))
+print_default = if(!is.null(dump$graph_print)) dump$graph_print else 1L
+print_period = as.integer(Sys.getenv("FGM_GRAPH_PRINT", unset = as.character(print_default)))
 if(is.na(print_period) || print_period <= 0)
   print_period = 1L
+
+cores_default = if(!is.null(dump$graph_cores)) dump$graph_cores else 1L
+graph_cores = as.integer(Sys.getenv("FGM_GRAPH_CORES", unset = as.character(cores_default)))
+if(is.na(graph_cores) || graph_cores <= 0)
+  graph_cores = 1L
 
 cat("Replay file: ", normalizePath(dump_file), "\n", sep = "")
 cat("R version: ", R.version.string, "\n", sep = "")
@@ -44,6 +50,8 @@ cat("p: ", ncol(dump$data), "\n", sep = "")
 cat("rho: ", paste(dump$rho, collapse = ","), "\n", sep = "")
 cat("graph edges: ", sum(dump$graph) / 2, "\n", sep = "")
 cat("beta_params: ", paste(dump$beta_params, collapse = ","), "\n", sep = "")
+cat("print: ", print_period, "\n", sep = "")
+cat("cores: ", graph_cores, "\n", sep = "")
 cat("Starting post_graph_sampling at ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n", sep = "")
 flush.console()
 
@@ -58,6 +66,7 @@ out = post_graph_sampling(
   g.start = dump$graph,
   save = TRUE,
   print = print_period,
+  cores = graph_cores,
   threshold = dump$threshold,
   beta_params = dump$beta_params
 )

@@ -3,7 +3,7 @@ wd_pc_ale = "C:/Users/colom/FGMRandomBlocks/"
 wd_pc_luciano = "C://Users//lucia//Desktop//PhD//my collaborations//Alessandro Colombi work//FGMRandomBlocks"
 wd_bocconi = "/home/colombi/FGMRandomBlocks/"
 wd_vec = c(wd_pc_ale,wd_pc_luciano,wd_bocconi)
-choose_wd = wd_vec[1] # <--- modify here to select the wd according to the user
+choose_wd = wd_vec[3] # <--- modify here to select the wd according to the user
 wd = paste0(choose_wd,"./")
 setwd(wd)
 
@@ -12,11 +12,8 @@ setwd(wd)
 library("tidyverse")
 #library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
 library("mvtnorm")
-library("salso")
 library("FGM") #  devtools::install_github("alessandrocolombi/FGMpackage")
-library("gmp") # che fa?
-library("mcclust")
-library("mcclust.ext")
+library("gmp") 
 library("logr")
 library("tidygraph")
 library("ggraph")
@@ -28,6 +25,7 @@ library('RcppGSL')
 # library("fda")
 library("coda")
 library("lattice")
+library("parallel")
 
 # Load custom functions ---------------------------------------------------
 
@@ -164,9 +162,9 @@ run_rho0_1     <- TRUE
 run_rho0_shift <- FALSE
 run_rho0_SM    <- FALSE
 
-niter   <- 200#000 # <---
+niter   <- 20#0000 # <---
 burn_in <- 0
-thin = 10
+thin = 1#0
 algorithm <- "rjmcmc"
 (niter-burn_in)/thin
 

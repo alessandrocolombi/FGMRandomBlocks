@@ -10,3 +10,4 @@ Rscripts/save/fit_Tesi25_p40_backup.Rdat
 Rscripts/save/Graphs_Tesi25_p40.Rdat
 chains/*.rds
 chains/logs_parallel/*.log
+chains/status_parallel/*

@@ -201,11 +201,14 @@ keep_beta <- FALSE
 # Output directory --------------------------------------------------------
 out_dir <- "chains"
 log_dir <- file.path(out_dir, "logs_parallel")
+status_dir <- file.path(out_dir, "status_parallel")
 
 if(!dir.exists(out_dir))
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 if(!dir.exists(log_dir))
   dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+if(!dir.exists(status_dir))
+  dir.create(status_dir, recursive = TRUE, showWarnings = FALSE)
 
 if(identical(Sys.getenv("SIMULATION_STUDY_PARALLEL_SMOKE"), "1")){
   Nrep = min(Nrep, 1L)
@@ -217,8 +220,10 @@ if(identical(Sys.getenv("SIMULATION_STUDY_PARALLEL_SMOKE"), "1")){
   thin = 1
   out_dir = file.path(tempdir(), "Simulation_Study_parallel_smoke")
   log_dir = file.path(out_dir, "logs_parallel")
+  status_dir = file.path(out_dir, "status_parallel")
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+  dir.create(status_dir, recursive = TRUE, showWarnings = FALSE)
 }
 
 cat("\nConfigurations to run:\n")
@@ -244,36 +249,65 @@ source_paths = file.path(
   )
 )
 
-make_chain_file = function(out_dir, config_name, eta, data_idx, niter, thin){
+make_chain_tag = function(config_name, eta, data_idx, niter, thin){
   eta_chr = as.character(eta)
-  file.path(
-    out_dir,
-    paste0(
-      "SS_", config_name, "_eta_", eta_chr, "_Nsim_", data_idx,
-      "_niter", niter,
-      "_thin", thin,
-      ".rds"
-    )
+  paste0(
+    "SS_", config_name, "_eta_", eta_chr, "_Nsim_", data_idx,
+    "_niter", niter,
+    "_thin", thin
   )
+}
+
+make_chain_file = function(out_dir, config_name, eta, data_idx, niter, thin){
+  file.path(out_dir, paste0(make_chain_tag(config_name, eta, data_idx, niter, thin), ".rds"))
+}
+
+make_status_file = function(status_dir, config_name, eta, data_idx, niter, thin, status){
+  file.path(status_dir, paste0(make_chain_tag(config_name, eta, data_idx, niter, thin), ".", status))
 }
 
 fmt_path = function(x){
   normalizePath(x, winslash = "/", mustWork = FALSE)
 }
 
+append_log = function(log_file, ...){
+  cat(
+    sprintf("[%s] ", format(Sys.time(), "%Y-%m-%d %H:%M:%S")),
+    paste0(..., collapse = ""),
+    "\n",
+    file = log_file,
+    append = TRUE,
+    sep = ""
+  )
+}
+
 run_single_chain = function(config, eta, data_idx, init_values,
-                            p, niter, thin, out_dir,
+                            p, niter, thin, out_dir, status_dir, log_file,
                             algorithm_graph, sampler_seed,
                             alpha_target, alpha_add, adaptation_step,
                             rj_iters, keep_beta){
   fit_file = make_chain_file(out_dir, config$name, eta, data_idx, niter, thin)
+  started_file = make_status_file(status_dir, config$name, eta, data_idx, niter, thin, "started")
+  finished_file = make_status_file(status_dir, config$name, eta, data_idx, niter, thin, "finished")
+  failed_file = make_status_file(status_dir, config$name, eta, data_idx, niter, thin, "failed")
+  chain_tag = make_chain_tag(config$name, eta, data_idx, niter, thin)
 
   result = tryCatch({
-    cat("Start chain\n")
-    cat("  data_idx: ", data_idx, "\n", sep = "")
-    cat("  eta:      ", eta, "\n", sep = "")
-    cat("  config:   ", config$name, "\n", sep = "")
-    cat("  fit_file: ", fmt_path(fit_file), "\n", sep = "")
+    if(file.exists(finished_file))
+      unlink(finished_file)
+    if(file.exists(failed_file))
+      unlink(failed_file)
+
+    cat(
+      "started_at: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
+      "tag: ", chain_tag, "\n",
+      "fit_file: ", fmt_path(fit_file), "\n",
+      file = started_file,
+      sep = ""
+    )
+
+    append_log(log_file, "START chain ", chain_tag, " | fit_file=", fmt_path(fit_file))
+    sampler_start = Sys.time()
 
     chain = Gibbs_sampler_update_h_optimized(
       set_UpdateParamsGSL_list = NULL,
@@ -301,11 +335,25 @@ run_single_chain = function(config, eta, data_idx, init_values,
       show_progress      = FALSE
     )
 
+    append_log(
+      log_file,
+      "SAMPLER returned for ", chain_tag,
+      " | elapsed_min=", round(as.numeric(difftime(Sys.time(), sampler_start, units = "mins")), 3)
+    )
+
     saveRDS(chain, file = fit_file)
     rm(chain)
     gc(verbose = FALSE)
 
-    cat("\nCompleted chain\n")
+    cat(
+      "finished_at: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
+      "tag: ", chain_tag, "\n",
+      "fit_file: ", fmt_path(fit_file), "\n",
+      file = finished_file,
+      sep = ""
+    )
+
+    append_log(log_file, "SAVED chain ", chain_tag, " | fit_file=", fmt_path(fit_file))
 
     list(
       data_idx = data_idx,
@@ -316,11 +364,15 @@ run_single_chain = function(config, eta, data_idx, init_values,
       error_message = NA_character_
     )
   }, error = function(e){
-    cat("\nChain failed\n")
-    cat("  data_idx: ", data_idx, "\n", sep = "")
-    cat("  eta:      ", eta, "\n", sep = "")
-    cat("  config:   ", config$name, "\n", sep = "")
-    cat("  error:    ", conditionMessage(e), "\n", sep = "")
+    cat(
+      "failed_at: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n",
+      "tag: ", chain_tag, "\n",
+      "error: ", conditionMessage(e), "\n",
+      file = failed_file,
+      sep = ""
+    )
+
+    append_log(log_file, "FAILED chain ", chain_tag, " | error=", conditionMessage(e))
 
     list(
       data_idx = data_idx,
@@ -337,22 +389,12 @@ run_single_chain = function(config, eta, data_idx, init_values,
 
 run_single_rep = function(data_idx, data_list, initialization_values_h,
                           rho0_configs, etas,
-                          p, niter, thin, out_dir, log_dir,
+                          p, niter, thin, out_dir, log_dir, status_dir,
                           algorithm_graph, sampler_seed,
                           alpha_target, alpha_add, adaptation_step,
                           rj_iters, keep_beta){
   log_file = file.path(log_dir, paste0("Simulation_Study_Nsim_", data_idx, ".log"))
-  log_open = FALSE
-  on.exit({
-    if(log_open)
-      try(sink(), silent = TRUE)
-  }, add = TRUE)
-
-  sink(log_file, split = FALSE)
-  log_open = TRUE
-
-  cat(sprintf("[%s] START repetition %s\n",
-              format(Sys.time(), "%Y-%m-%d %H:%M:%S"), data_idx))
+  append_log(log_file, "START repetition ", data_idx)
 
   init_values = initialization_values_h
   init_values$Beta = t(data_list[[data_idx]])
@@ -369,6 +411,8 @@ run_single_rep = function(data_idx, data_list, initialization_values_h,
         niter = niter,
         thin = thin,
         out_dir = out_dir,
+        status_dir = status_dir,
+        log_file = log_file,
         algorithm_graph = algorithm_graph,
         sampler_seed = sampler_seed,
         alpha_target = alpha_target,
@@ -380,13 +424,7 @@ run_single_rep = function(data_idx, data_list, initialization_values_h,
     }
   }
 
-  cat(sprintf("[%s] END repetition %s\n",
-              format(Sys.time(), "%Y-%m-%d %H:%M:%S"), data_idx))
-
-  if(log_open){
-    try(sink(), silent = TRUE)
-    log_open = FALSE
-  }
+  append_log(log_file, "END repetition ", data_idx)
 
   out = do.call(rbind, lapply(rep_results, as.data.frame))
   out$log_file = log_file
@@ -407,12 +445,13 @@ parallel::clusterExport(
     "data_list", "initialization_values_h",
     "rho0_configs", "etas",
     "p", "niter", "thin",
-    "out_dir", "log_dir",
+    "out_dir", "log_dir", "status_dir",
     "algorithm_graph", "sampler_seed",
     "alpha_target", "alpha_add", "adaptation_step",
     "rj_iters", "keep_beta",
     "limit_threaded_libraries",
-    "make_chain_file", "fmt_path",
+    "make_chain_tag", "make_chain_file", "make_status_file",
+    "fmt_path", "append_log",
     "run_single_chain", "run_single_rep"
   ),
   envir = environment()
@@ -461,6 +500,7 @@ results = parallel::parLapplyLB(cl, seq_len(Nrep), function(data_idx){
     thin = thin,
     out_dir = out_dir,
     log_dir = log_dir,
+    status_dir = status_dir,
     algorithm_graph = algorithm_graph,
     sampler_seed = sampler_seed,
     alpha_target = alpha_target,
@@ -491,6 +531,7 @@ cat("\nSaved objects / output manifest\n")
 cat("summary_csv: ", fmt_path(summary_file), "\n", sep = "")
 cat("output_dir:  ", fmt_path(out_dir), "\n", sep = "")
 cat("log_dir:     ", fmt_path(log_dir), "\n", sep = "")
+cat("status_dir:  ", fmt_path(status_dir), "\n", sep = "")
 
 for(i in seq_len(nrow(results_df))){
   cat("\nRun ", i, "/", nrow(results_df), "\n", sep = "")

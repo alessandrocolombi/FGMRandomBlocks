@@ -166,8 +166,8 @@ etas <- c(0, 0.5, 0.75, 0.9)
 # Set each option to TRUE/FALSE to decide which initial partitions are run
 # and saved for every pair (data_idx, eta).
 run_rho0_1     <- TRUE
-run_rho0_shift <- FALSE
-run_rho0_SM    <- FALSE
+run_rho0_shift <- TRUE
+run_rho0_SM    <- TRUE
 
 rho0_configs = list(
   list(name = "rho0_1",     rho0 = rho0_1,     run = run_rho0_1),
@@ -179,17 +179,25 @@ rho0_configs = rho0_configs[vapply(rho0_configs, function(x) isTRUE(x$run), logi
 if(length(rho0_configs) == 0)
   stop("At least one run_rho0_* option must be TRUE")
 
+is_eta_zero = function(eta){
+  isTRUE(all.equal(eta, 0))
+}
+
+should_run_eta_for_config = function(config_name, eta){
+  config_name == "rho0_1" || !is_eta_zero(eta)
+}
+
 ## Parallel options -------------------------------------------------------
 avail_cores = parallel::detectCores(logical = TRUE)
 if(is.na(avail_cores))
   avail_cores = 1L
-requested_cores = 15L # <---
+requested_cores = 30L # <---
 n_cores = min(requested_cores, avail_cores, Nrep)
 
 ## MCMC options -----------------------------------------------------------
-niter   <- 20#0000 # <---
+niter   <- 100000 # <---
 burn_in <- 0
-thin = 1#0
+thin = 10
 algorithm <- "rjmcmc"
 (niter-burn_in)/thin
 
@@ -406,6 +414,9 @@ run_single_rep = function(data_idx, data_list, initialization_values_h,
   rep_results = list()
   for(eta in etas){
     for(config in rho0_configs){
+      if(!should_run_eta_for_config(config$name, eta))
+        next
+
       rep_results[[length(rep_results) + 1]] = run_single_chain(
         config = config,
         eta = eta,
@@ -465,6 +476,7 @@ parallel::clusterExport(
     "rj_iters", "keep_beta",
     "limit_threaded_libraries",
     "make_chain_tag", "make_chain_file", "make_status_file",
+    "is_eta_zero", "should_run_eta_for_config",
     "fmt_path", "append_log",
     "run_single_chain", "run_single_rep"
   ),

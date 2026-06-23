@@ -197,6 +197,14 @@ run_rho0_shift <- FALSE
 run_rho0_SM    <- FALSE
 debug_sampler <- identical(Sys.getenv("FGM_DEBUG_SAMPLER"), "1")
 
+is_eta_zero = function(eta){
+  isTRUE(all.equal(eta, 0))
+}
+
+should_run_eta_for_config = function(config_name, eta){
+  config_name == "rho0_1" || !is_eta_zero(eta)
+}
+
 niter   <- 20#0000 # <---
 burn_in <- 0
 thin = 1#0
@@ -223,7 +231,7 @@ for(data_idx in 1:Nrep){
     
     eta_chr <- as.character(eta)
     
-    if(run_rho0_1){
+    if(run_rho0_1 && should_run_eta_for_config("rho0_1", eta)){
       message("  eta = ", eta, " | rho0_1")
       
       ## First run: rho_0 is the true partition
@@ -273,7 +281,7 @@ for(data_idx in 1:Nrep){
       rm(chain_rho0_1)
     }
     
-    if(run_rho0_shift){
+    if(run_rho0_shift && should_run_eta_for_config("rho0_shift", eta)){
       message("  eta = ", eta, " | rho0_shift")
       
       ## Second run: rho_0 is the shifted wrt the true partition
@@ -323,7 +331,7 @@ for(data_idx in 1:Nrep){
       rm(chain_rho0_shift)
     }
     
-    if(run_rho0_SM){
+    if(run_rho0_SM && should_run_eta_for_config("rho0_SM", eta)){
       message("  eta = ", eta, " | rho0_SM")
       
       ## Third run: rho_0 is a split-merge modification of the true partition

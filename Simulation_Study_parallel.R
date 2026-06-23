@@ -185,9 +185,9 @@ requested_cores = 15L # <---
 n_cores = min(requested_cores, avail_cores, Nrep)
 
 ## MCMC options -----------------------------------------------------------
-niter   <- 200000 # <---
+niter   <- 20#0000 # <---
 burn_in <- 0
-thin = 10
+thin = 1#0
 algorithm <- "rjmcmc"
 (niter-burn_in)/thin
 

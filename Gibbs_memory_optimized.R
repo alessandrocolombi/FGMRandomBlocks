@@ -55,6 +55,42 @@ Gibbs_sampler_h_fast = function(
                       format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s))
       flush.console()
     }
+
+    if(identical(Sys.getenv("FGM_DUMP_GRAPH_INPUT"), "1")){
+      dump_dir = Sys.getenv("FGM_DUMP_GRAPH_INPUT_DIR", unset = "")
+      if(!nzchar(dump_dir))
+        dump_dir = file.path(getwd(), "debug_graph_inputs")
+      dir.create(dump_dir, recursive = TRUE, showWarnings = FALSE)
+
+      dump_file = file.path(
+        dump_dir,
+        sprintf(
+          "graph_input_pid%s_iter%s_%s.rds",
+          Sys.getpid(),
+          s,
+          format(Sys.time(), "%Y%m%d_%H%M%S")
+        )
+      )
+
+      saveRDS(
+        list(
+          data = data,
+          rho = rho,
+          n = n,
+          algorithm = algorithm,
+          rj_steps = options$rj_steps,
+          graph = graph,
+          beta_params = beta_params,
+          threshold = 1e-8,
+          timestamp = Sys.time(),
+          session_info = sessionInfo()
+        ),
+        file = dump_file
+      )
+      message(sprintf("[%s] inner iter %s: dumped graph input to %s",
+                      format(Sys.time(), "%Y-%m-%d %H:%M:%S"), s, dump_file))
+      flush.console()
+    }
     
     output = post_graph_sampling(
       data, rho, n,

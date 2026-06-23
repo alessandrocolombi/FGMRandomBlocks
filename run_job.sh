@@ -33,6 +33,15 @@ export GOTO_NUM_THREADS="${GOTO_NUM_THREADS:-1}"
 export OMP_DYNAMIC="${OMP_DYNAMIC:-FALSE}"
 export MKL_DYNAMIC="${MKL_DYNAMIC:-FALSE}"
 
+# Default sampler/runtime options.
+# They can still be overridden inline, e.g.
+#   FGM_DEBUG_SAMPLER=1 ./run_job.sh Simulation_Study.R
+export FGM_DEBUG_SAMPLER="${FGM_DEBUG_SAMPLER:-0}"
+export FGM_DUMP_GRAPH_INPUT="${FGM_DUMP_GRAPH_INPUT:-0}"
+export FGM_GRAPH_ALGORITHM="${FGM_GRAPH_ALGORITHM:-rjmcmc}"
+export FGM_GRAPH_PRINT="${FGM_GRAPH_PRINT:-1}"
+export FGM_GRAPH_CORES="${FGM_GRAPH_CORES:-1}"
+
 # Run R in a NEW SESSION so Ctrl+C in this terminal won't kill the job
 setsid bash -lc "Rscript '$SCRIPT' > '$log' 2>&1" </dev/null &  # detached job
 pid=$!                                    # PID of the detached session leader

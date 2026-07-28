@@ -68,7 +68,18 @@ r_to_rho <- function(rvec) {
 }
 
 r_to_z = function(r){
-    return()
+    if(length(r) == 0)
+        return(integer(0))
+    
+    r = as.integer(r)
+    
+    if(any(is.na(r)) || any(!r %in% c(0L, 1L)))
+        stop("r must be a binary changepoint vector")
+    
+    if(r[length(r)] != 1L)
+        r = c(r, 1L)
+    
+    rho_to_z(r_to_rho(r))
 }
 
 

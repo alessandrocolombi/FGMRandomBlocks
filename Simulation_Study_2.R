@@ -11,7 +11,7 @@ setwd(wd)
 library("tidyverse")
 #library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
 library("mvtnorm")
-library("salso")
+# library("salso")
 library("FGM") #  devtools::install_github("alessandrocolombi/FGMpackage")
 library("gmp") # che fa?
 library("mcclust")
@@ -234,15 +234,15 @@ evaluate_chain <- function(chains,rho_type,eta,nsimul,niter,burn_in,thin,
       eta = eta,
       rho_type = rho_type,
       
-      ARI_true_bind   = 0,
-      ARI_true_vi     = 0,
-      ARI_true_p05    = 0,
-      ARI_true_argmax = 0,
+      ARI_true_bind   = NA_real_,
+      ARI_true_vi     = NA_real_,
+      ARI_true_p05    = NA_real_,
+      ARI_true_argmax = NA_real_,
       
-      ARI_exp_bind   = 0,
-      ARI_exp_vi     = 0,
-      ARI_exp_p05    = 0,
-      ARI_exp_argmax = 0,
+      ARI_exp_bind   = NA_real_,
+      ARI_exp_vi     = NA_real_,
+      ARI_exp_p05    = NA_real_,
+      ARI_exp_argmax = NA_real_,
       
       threshold = bfdr_select$best_treshold,
       TP = TP,
@@ -288,7 +288,7 @@ evaluate_chain <- function(chains,rho_type,eta,nsimul,niter,burn_in,thin,
     r_no_final = r_cpn[,1:(p-1)]
     bar_heights_norm = colSums(r_no_final)/nrow(r_no_final)
     # bars_names = as.character(1:(p-1))
-    sim_matrix <- salso::psm(z)
+    sim_matrix <- mcclust::comp.psm(z)
     rownames(sim_matrix) <- 1:p
     colnames(sim_matrix) <- 1:p
     # pheatmap(sim_matrix,cluster_rows = FALSE,cluster_cols = FALSE)

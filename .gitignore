@@ -11,3 +11,6 @@ Rscripts/save/Graphs_Tesi25_p40.Rdat
 chains/*.rds
 chains/logs_parallel/*.log
 chains/status_parallel/*
+chains/logs_parallel_2/*.log
+chains/status_parallel_2/*
+chains/results_parallel_2/*.rds

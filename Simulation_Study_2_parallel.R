@@ -144,7 +144,7 @@ seed = 123131
 n = 500
 d = 10
 U = diag(p)
-Nrep = 15 # <---
+Nrep = 50 # <---
 
 set.seed(seed)
 Omega_true_arr = BDgraph::rgwish(n = Nrep, adj = Gtrue, b = d, D = U)
@@ -203,9 +203,9 @@ if(!algorithm_graph %in% c("rjmcmc", "bdmcmc", "rjmcmc.mpl"))
 etas <- c("CSDA", 0, 0.5, 0.75, 0.9)
 
 ## MCMC options -----------------------------------------------------------
-niter   <- 500
-burn_in <- 20
-thin = 2
+niter   <- 80000
+burn_in <- 40000
+thin = 4
 (niter - burn_in) / thin
 
 sampler_seed <- 22111996
@@ -219,7 +219,7 @@ keep_beta <- FALSE
 avail_cores = parallel::detectCores(logical = TRUE)
 if(is.na(avail_cores))
   avail_cores = 1L
-requested_cores = 15L # <---
+requested_cores = 25L # <---
 n_cores = min(requested_cores, avail_cores, Nrep)
 
 # Output directories ------------------------------------------------------

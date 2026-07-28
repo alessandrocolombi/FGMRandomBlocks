@@ -42,7 +42,7 @@ limit_threaded_libraries(1L)
 library("tidyverse")
 #library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
 library("mvtnorm")
-library("salso")
+# library("salso")
 library("FGM") #  devtools::install_github("alessandrocolombi/FGMpackage")
 library("gmp")
 library("mcclust")
@@ -525,7 +525,7 @@ evaluate_chain <- function(chains, rho_type, eta, nsimul, niter, burn_in, thin,
     r_no_final = r_cpn[, 1:(p - 1)]
     bar_heights_norm = colSums(r_no_final) / nrow(r_no_final)
 
-    sim_matrix <- salso::psm(z)
+    sim_matrix <- mcclust::comp.psm(z)  #salso::psm(z)
     rownames(sim_matrix) <- 1:p
     colnames(sim_matrix) <- 1:p
 
@@ -823,7 +823,7 @@ for(worker_id in seq_along(cl)){
       library("tidyverse")
       #library("ACutils") # devtools::install_github("https://github.com/alessandrocolombi/ACutils")
       library("mvtnorm")
-      library("salso")
+      # library("salso")
       library("FGM") #  devtools::install_github("alessandrocolombi/FGMpackage")
       library("gmp")
       library("mcclust")

@@ -12,7 +12,8 @@ setwd(wd)
 result_file <- file.path(
   wd,
   "chains",
-  "results_graph_part_dbig_parallel_Nrep50_niter80000_n500.csv"
+  # "results_graph_part_dbig_parallel_Nrep50_niter80000_n500.csv" # n500
+  "results_graph_part_dbig_parallel_Nrep50_niter80000_n200.csv" # n200
 )
 
 res <- read.csv(result_file)
@@ -25,8 +26,8 @@ show_title <- FALSE
 img_dir <- file.path(wd, "img")
 dir.create(img_dir, recursive = TRUE, showWarnings = FALSE)
 
-pdf_width <- 6
-pdf_height <- 8
+pdf_width <- 8
+pdf_height <- 6
 
 n_label <- sub("^.*_n([0-9]+)\\.[^.]+$", "n\\1", basename(result_file))
 if(identical(n_label, basename(result_file)))
@@ -38,7 +39,7 @@ cex_main <- 2
 cex_names <- 2
 
 plot_mgp <- c(5, 1.4, 0)
-plot_mar <- c(9, 9, if(show_title) 4 else 1, 2) + 0.1
+plot_mar <- c(6, 7, if(show_title) 4 else 1, 2) + 0.1
 
 # Dark colors used for model competitors.
 model_colors <- c(
@@ -81,17 +82,20 @@ metric_specs <- list(
   ARI_true_vi = list(
     column = "ARI_true_vi",
     label = "ARI true VI",
-    include_csda = FALSE
+    include_csda = FALSE,
+    ylim = c(0, 1)
   ),
   ARI_true_binder = list(
     column = "ARI_true_bind",
     label = "ARI true Binder",
-    include_csda = FALSE
+    include_csda = FALSE,
+    ylim = c(0, 1)
   ),
   ARI_true_p05 = list(
     column = "ARI_true_p05",
     label = "ARI true p > 0.5",
-    include_csda = FALSE
+    include_csda = FALSE,
+    ylim = c(0, 1)
   ),
   threshold = list(
     column = "threshold",
@@ -206,6 +210,7 @@ plot_metric_boxplot <- function(data, rho_type, metric_name, spec){
     border = "gray15",
     ylab = spec$label,
     main = if(show_title) paste(spec$label, "|", rho_type) else "",
+    ylim = spec$ylim,
     xaxt = "n",
     cex.axis = cex_axis,
     cex.lab = cex_lab,

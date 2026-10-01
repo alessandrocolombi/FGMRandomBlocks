@@ -5,6 +5,7 @@ SCRIPT_DEFAULT="./Simulation_Study_parallel.R"   # default script if none given
 TAIL_LINES="${TAIL_LINES:-200}"           # lines to show before follow
 
 SCRIPT="${1:-$SCRIPT_DEFAULT}"            # allow: ./run_job.sh path/to/script.R
+if (( $# > 0 )); then shift; fi           # remaining arguments go to Rscript
 LOGDIR="logs"
 mkdir -p "$LOGDIR"                        # ensure logs folder exists
 
@@ -43,7 +44,7 @@ export FGM_GRAPH_PRINT="${FGM_GRAPH_PRINT:-1}"
 export FGM_GRAPH_CORES="${FGM_GRAPH_CORES:-1}"
 
 # Run R in a NEW SESSION so Ctrl+C in this terminal won't kill the job
-setsid bash -lc "Rscript '$SCRIPT' > '$log' 2>&1" </dev/null &  # detached job
+setsid bash -lc 'exec Rscript "$@"' _ "$SCRIPT" "$@" > "$log" 2>&1 </dev/null &
 pid=$!                                    # PID of the detached session leader
 echo "$pid" > "$pidfile"                  # save PID for status/kill
 

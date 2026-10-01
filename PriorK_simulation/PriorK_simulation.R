@@ -25,8 +25,8 @@ set_prior_working_directory(
 p <- 40L
 B <- 1000L
 seed <- 20260930L
-theta_grid <- c(5,10)#c(1,5,10,20)
-sigma_grid <- c(1e-3,0.1)#c(1e-3, 0.1, 0.5, 0.8)  # 0 <= sigma < 1; theta > -sigma
+theta_grid <- c(-0.5,0,1,2,5)
+sigma_grid <- c(1e-5,0.1,0.51,0.75,0.99) # 0 <= sigma < 1; theta > -sigma
 
 # Sequenza richiesta dall'utente, modificabile per altre configurazioni.
 # Eta_j>0 identifica una posizione candidata a changepoint esperto.
@@ -49,8 +49,10 @@ prior_K_mean_sd_table <- function(result) {
   sigma_values <- unique(result$sigma)
   cells <- matrix(NA_character_, nrow = length(theta_values),
                   ncol = length(sigma_values))
-  cells[cbind(match(result$theta, theta_values), match(result$sigma, sigma_values))] <-
-    sprintf("%.2f (%.2f)", result$mean, sqrt(result$variance))
+  available <- is.finite(result$mean) & is.finite(result$variance)
+  cells[cbind(match(result$theta[available], theta_values),
+              match(result$sigma[available], sigma_values))] <-
+    sprintf("%.2f (%.2f)", result$mean[available], sqrt(result$variance[available]))
   colnames(cells) <- paste0("sigma=", as.character(sigma_values))
   data.frame(theta = theta_values, cells, check.names = FALSE)
 }
@@ -64,15 +66,19 @@ simulate_prior_K <- function(theta_grid, sigma_grid, eta, B = 1000L,
   if (length(B) != 1L || !is.finite(B) || B < 2 || B != floor(B))
     stop("B deve essere un intero >=2.")
   if (!length(theta_grid) || !length(sigma_grid)) stop("Le griglie non possono essere vuote.")
+  if (!is.numeric(theta_grid) || !is.numeric(sigma_grid)) stop("Le griglie devono essere numeriche.")
   grid <- unique(expand.grid(theta = theta_grid, sigma = sigma_grid))
-  for (i in seq_len(nrow(grid))) check_py_parameters(p, grid$theta[i], grid$sigma[i])
+  valid <- with(grid, is.finite(theta) & is.finite(sigma) &
+                  sigma >= 0 & sigma < 1 & theta > -sigma)
+  valid[is.na(valid)] <- FALSE
 
   # Nuova implementazione: log(C_mathcal/sigma^k), senza fattori di segno.
   # Compilazione una sola volta; include il limite Dirichlet sigma=0.
-  load_logC()
+  if (any(valid)) load_logC()
   # Verifica massa, intervallo e media (11) delle PMF non normalizzate.
   # La cache evita il ricalcolo dei coefficienti ad ogni replica Monte Carlo.
   pmfs <- lapply(seq_len(nrow(grid)), function(i) {
+    if (!valid[i]) return(NULL)
     lapply(seq_len(p), function(n) prior_Kh_pmf(n, grid$theta[i], grid$sigma[i]))
   })
   dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
@@ -81,32 +87,45 @@ simulate_prior_K <- function(theta_grid, sigma_grid, eta, B = 1000L,
   for (i in seq_len(nrow(grid))) {
     theta <- grid$theta[i]
     sigma <- grid$sigma[i]
-    gamma_draws <- matrix(0L, nrow = B, ncol = p)
-    sizes_draws <- Kh_draws <- vector("list", B)
-    K <- H <- integer(B)
-    conditional_mean <- numeric(B)
-    for (b in seq_len(B)) {
-      gamma <- rbinom(p, size = 1L, prob = eta)
-      sizes <- diff(c(0L, which(gamma == 1L)))
-      Kh <- vapply(sizes, function(n) {
-        sample.int(n, size = 1L, prob = pmfs[[i]][[n]]$probability)
-      }, integer(1))
-      gamma_draws[b, ] <- gamma
-      sizes_draws[[b]] <- sizes
-      Kh_draws[[b]] <- Kh
-      K[b] <- sum(Kh)
-      H[b] <- length(sizes)
-      conditional_mean[b] <- sum(vapply(sizes, prior_Kh_mean, numeric(1),
-                                        theta = theta, sigma = sigma))
+    if (!valid[i]) {
+      message(sprintf("Salto theta=%g, sigma=%g: richiesti 0<=sigma<1 e theta>-sigma, finiti.",
+                      theta, sigma))
+      summaries[[i]] <- data.frame(
+        p = p, B = B, seed = seed, theta = theta, sigma = sigma,
+        mean = NA_real_, sd = NA_real_, variance = NA_real_, median = NA_real_,
+        q025 = NA_real_, q975 = NA_real_, min = NA_real_, max = NA_real_,
+        mcse_mean = NA_real_, mean_conditional_expectation = NA_real_,
+        status = "invalid_parameters")
+      # Non creare estrazioni fittizie per una prior non definita.
+      K <- H <- gamma_draws <- sizes_draws <- Kh_draws <- conditional_mean <- NULL
+    } else {
+      gamma_draws <- matrix(0L, nrow = B, ncol = p)
+      sizes_draws <- Kh_draws <- vector("list", B)
+      K <- H <- integer(B)
+      conditional_mean <- numeric(B)
+      for (b in seq_len(B)) {
+        gamma <- rbinom(p, size = 1L, prob = eta)
+        sizes <- diff(c(0L, which(gamma == 1L)))
+        Kh <- vapply(sizes, function(n) {
+          sample.int(n, size = 1L, prob = pmfs[[i]][[n]]$probability)
+        }, integer(1))
+        gamma_draws[b, ] <- gamma
+        sizes_draws[[b]] <- sizes
+        Kh_draws[[b]] <- Kh
+        K[b] <- sum(Kh)
+        H[b] <- length(sizes)
+        conditional_mean[b] <- sum(vapply(sizes, prior_Kh_mean, numeric(1),
+                                          theta = theta, sigma = sigma))
+      }
+      stopifnot(all(K >= H), all(K <= p))
+      q <- quantile(K, probs = c(0.025, 0.975), type = 1, names = FALSE)
+      summaries[[i]] <- data.frame(
+        p = p, B = B, seed = seed, theta = theta, sigma = sigma,
+        mean = mean(K), sd = sd(K), variance = var(K), median = median(K),
+        q025 = q[1], q975 = q[2], min = min(K), max = max(K),
+        mcse_mean = sd(K) / sqrt(B),
+        mean_conditional_expectation = mean(conditional_mean), status = "completed")
     }
-    stopifnot(all(K >= H), all(K <= p))
-    q <- quantile(K, probs = c(0.025, 0.975), type = 1, names = FALSE)
-    summaries[[i]] <- data.frame(
-      p = p, B = B, seed = seed, theta = theta, sigma = sigma,
-      mean = mean(K), sd = sd(K), variance = var(K), median = median(K),
-      q025 = q[1], q975 = q[2], min = min(K), max = max(K),
-      mcse_mean = sd(K) / sqrt(B),
-      mean_conditional_expectation = mean(conditional_mean))
     # Indice univoco anche per parametri con rappresentazioni testuali simili.
     tag <- sprintf("PriorK_%03d_theta_%s_sigma_%s", i,
                    format(theta, digits = 16, trim = TRUE),

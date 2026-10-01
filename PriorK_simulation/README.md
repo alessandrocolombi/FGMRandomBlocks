@@ -104,8 +104,10 @@ PriorKh_normalization_values.csv.
 
 La sezione CONFIGURAZIONE UTENTE in PriorK_simulation.R contiene theta_grid,
 sigma_grid, eta, B=1000 e il seme. p resta 40. Dominio: 0<=sigma<1,
-theta>-sigma; quando sigma=0 occorre theta>0. Tutte le combinazioni delle
-griglie devono essere ammissibili, altrimenti lo script si arresta.
+theta>-sigma; quando sigma=0 occorre theta>0. Le combinazioni non ammissibili vengono saltate: statistiche e celle della
+tabella sono NA, status=invalid_parameters e nessuna estrazione viene generata
+(campi delle estrazioni NULL nel file RDS). Le altre coppie sono simulate normalmente.
+I controlli numerici sulle PMF delle coppie valide rimangono attivi.
 
 Gli eta richiesti sono 1 per j=4,6,9,13,18,22,28,33,40 e 0 altrove.
 Quindi gamma=eta quasi certamente, H=9 e p_tilde=(4,2,3,4,5,4,6,5,7).

@@ -1,3 +1,0 @@
-Massimo errore log C vs formula esplicita sigma=1/2: 5.684341886080801e-14
-Massimo errore PMF vs predittiva sui casi limite: 3.286260152890463e-14
-Nessuna PMF e' stata normalizzata artificialmente.

@@ -1,0 +1,26 @@
+source("PriorK_simulation/PriorK_simulation.R")
+for (u in c(0,0.5,1)) {
+  opt <- read_prior_options(c(paste0("eta_usr=",u),"choose_wd=1"))
+  stopifnot(opt$eta_usr==u)
+  et <- make_prior_eta(u)
+  stopifnot(et[40]==1, all(et[c(4,6,9,13,18,22,28,33)]==u),sum(et>0)==if(u==0) 1 else 9)
+}
+for (args in list("eta_usr=-0.1","eta_usr=1.1","eta_usr=NaN",c("eta_usr=0","eta_usr=1"),"foo=1"))
+  stopifnot(inherits(try(read_prior_options(args),silent=TRUE),"try-error"))
+d1 <- tempfile("prior_fixed_")
+messages <- capture.output(out <- capture.output(tab <- simulate_prior_K(c(-0.5,1),c(0.1,0.99),make_prior_eta(.5),B=20,output_dir=d1)),type="message")
+stopifnot(length(messages)==0,identical(list.files(d1),"PriorK_mean_sd_table.csv"),is.na(tab[1,2]))
+stopifnot(identical(out,capture.output(print(tab,row.names=FALSE,quote=FALSE,right=TRUE))))
+source("PriorK_simulation/PriorK_sim_ab_theta.R")
+for (u in c(0,0.5,1)) {
+  d2 <- tempfile("prior_ab_"); f <- file.path(d2,"table.csv")
+  messages <- capture.output(out <- capture.output(tab <- simulate_prior_K_ab_theta(c(-1,.88),.94,make_prior_eta(u),B=30,output_file=f)),type="message")
+  stopifnot(length(messages)==0,identical(list.files(d2),"table.csv"),is.na(tab[1,2]),!is.na(tab[2,2]))
+  stopifnot(identical(out,capture.output(print(tab,row.names=FALSE,quote=FALSE,right=TRUE))))
+}
+set.seed(123); z <- draw_K_hyperprior(.88,.94,rep(1,40),B=10)
+stopifnot(all(z==40))
+set.seed(123); z1 <- draw_K_hyperprior(.88,.94,make_prior_eta(.5),B=30)
+set.seed(123); z2 <- draw_K_hyperprior(.88,.94,make_prior_eta(.5),B=30)
+stopifnot(identical(z1,z2))
+cat("PASS: eta 0/0.5/1, command-line parser, NA cells, singleton groups, reproducibility, only final table printed/saved.\n")

@@ -21,8 +21,8 @@ p <- 40L
 B <- 10000L
 seed <- 20261001L
 a_sigma <- b_sigma <- 1           # FISSI: sigma ~ Uniforme(0,1)
-a_theta_grid <- c(0.1,0.5,0.88,1.5)   # Esempio modificabile: shape Gamma
-b_theta_grid <- c(0.1,0.5,0.94,1.5)   # Esempio modificabile: RATE Gamma
+a_theta_grid <- c(0.5,0.88,1.5)   # Esempio modificabile: shape Gamma
+b_theta_grid <- c(0.5,0.94,1.5)   # Esempio modificabile: RATE Gamma
 
 eta <- numeric(p)
 eta[c(4, 6, 9, 13, 18, 22, 28, 33, 40)] <- 1

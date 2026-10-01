@@ -26,7 +26,7 @@ p <- 40L
 B <- 1000L
 seed <- 20260930L
 theta_grid <- c(5,10)#c(1,5,10,20)
-sigma_grid <- c(1e-3,1)#c(1e-3, 0.1, 0.5, 0.8)  # 0 <= sigma < 1; theta > -sigma
+sigma_grid <- c(1e-3,0.1)#c(1e-3, 0.1, 0.5, 0.8)  # 0 <= sigma < 1; theta > -sigma
 
 # Sequenza richiesta dall'utente, modificabile per altre configurazioni.
 # Eta_j>0 identifica una posizione candidata a changepoint esperto.

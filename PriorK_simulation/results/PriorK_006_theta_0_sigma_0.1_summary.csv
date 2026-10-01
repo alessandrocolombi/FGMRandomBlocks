@@ -1,0 +1,2 @@
+"p","B","seed","theta","sigma","mean","sd","variance","median","q025","q975","min","max","mcse_mean","mean_conditional_expectation","status"
+40,1000,20260930,0,0.1,10.85,1.44761721307658,2.0955955955956,11,9,14,9,17,0.0457776757338727,10.7985802375,"completed"

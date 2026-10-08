@@ -15,7 +15,7 @@ N <- 1000L                     # numero di estrazioni Monte Carlo
 seed <- 20261001L
 sigma_conditional <- c(0.1, 0.5, 0.9)
 upper_plot_quantile <- 0.995      # limite destro dei grafici di theta
-save_plot <- TRUE
+save_plot <- FALSE
 script_dir <- if (dir.exists("PriorK_simulation")) "PriorK_simulation" else "."
 output_dir <- file.path(script_dir, "results", "theta_sigma_prior")
 # ====================================================================

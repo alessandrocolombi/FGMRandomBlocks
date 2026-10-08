@@ -1,78 +1,92 @@
-# Distribuzione prior marginale di K: eseguire dall'alto con Ctrl+Invio.
+# Distribuzione prior marginale di K su una griglia di eta.
+# Eseguibile dall'alto con Ctrl+Invio.
 # Working directory: FGMRandomBlocks oppure PriorK_simulation.
-# Nessuna tabella o estrazione salvata: solo figure PDF e PNG.
+# Nessuna tabella o estrazione salvata: solo figure PDF e PNG, se richiesto.
 
 # ==================== CONFIGURAZIONE UTENTE ==========================
 a_theta <- 0.88
 b_theta <- 0.94                 # RATE Gamma, non scale
 a_sigma <- 1                   # shape1 Beta
 b_sigma <- 1                   # shape2 Beta
-eta_usr <- 0.5                  # Probabilita' dei changepoint esperti interni
-B <- 10000L
+eta_grid <- c(0, 0.5, 0.75, 0.9)
+B <- 100000L
 seed <- 20261001L
-# sigma ~ Beta(a_sigma,b_sigma), p=40; l'ultimo nodo ha sempre eta[40]=1.
+# sigma ~ Beta(a_sigma,b_sigma), p=40; eta[40]=1 sempre.
 save_figures <- FALSE
 # ====================================================================
 
 .plot_dir <- if (file.exists("PriorK_helpers.R")) "." else "PriorK_simulation"
 source(file.path(.plot_dir, "PriorK_helpers.R"), local = TRUE)
 source(file.path(.plot_dir, "PriorKh_test.R"), local = TRUE)
-eta <- make_prior_eta(eta_usr)
+if (!is.numeric(eta_grid) || !length(eta_grid) || any(!is.finite(eta_grid)) ||
+    any(eta_grid < 0 | eta_grid > 1)) stop("eta_grid deve contenere valori in [0,1].")
+eta_grid <- unique(eta_grid)
 set.seed(seed)
-K <- draw_K_hyperprior(a_theta, b_theta, eta, B, a_sigma = a_sigma, b_sigma = b_sigma)
 
-# K e' discreto: si rappresentano frequenze relative, senza KDE continua.
-k <- seq_len(40L)
-probability <- tabulate(K, nbins = 40L) / B
-K_mean <- mean(K)
-K_sd <- sd(K)
-K_quantiles <- quantile(K, c(0.025, 0.975), type = 1, names = FALSE)
-minimum_K <- sum(eta == 1)
+# Un campione e una PMF per ciascun eta; nessuna KDE continua.
+prior_K_distributions <- lapply(eta_grid, function(eta_usr) {
+  eta <- make_prior_eta(eta_usr)
+  K <- draw_K_hyperprior(a_theta, b_theta, eta, B, a_sigma = a_sigma, b_sigma = b_sigma)
+  list(eta_usr = eta_usr, probability = tabulate(K, nbins = 40L) / B,
+       K_mean = mean(K))
+})
+# Stessi limiti e tick in tutte le figure per facilitare il confronto.
+y_max <- max(vapply(prior_K_distributions, function(x) max(x$probability), numeric(1))) * 1.12
+y_ticks <- pretty(c(0, y_max), n = 5)
+y_ticks <- y_ticks[y_ticks >= 0 & y_ticks <= y_max]
+x_ticks <- c(1, seq(5, 40, by = 5))
 
-plot_prior_K_distribution <- function() {
+plot_prior_K_distribution <- function(distribution) {
   old_par <- par(no.readonly = TRUE)
   on.exit(par(old_par))
-  par(mar = c(5, 5, 6, 1), las = 1)
-  plot(k, probability, type = "n", xlim = c(minimum_K - 0.5, 40.5),
-       ylim = c(0, max(probability) * 1.16), xaxs = "i", yaxs = "i",
-       xlab = "Numero totale di cluster K", ylab = "Probabilita' stimata P(K = k)",
-       xaxt = "n", bty = "l")
-  abline(h = axTicks(2), col = "grey90", lwd = 0.6)
-  rect(k - 0.38, 0, k + 0.38, probability, col = "#327FAD", border = NA)
-  ticks <- sort(unique(c(minimum_K, seq(5, 40, by = 5))))
-  axis(1, at = ticks[ticks >= minimum_K])
-  abline(v = K_mean, col = "#C57422", lwd = 2, lty = 2)
-  title(main = "Distribuzione prior marginale di K", line = 4)
-  # Testo ASCII per PDF portabili anche senza il font matematico Symbol.
-  mtext(sprintf("a_theta = %g; b_theta = %g (rate); eta_usr = %g; sigma ~ Beta(%g,%g)",
-                a_theta, b_theta, eta_usr, a_sigma, b_sigma), side = 3, line = 2.6, cex = 0.9)
-  mtext(sprintf("B = %s | media (sd) = %.2f (%.2f) | quantili 2.5%% / 97.5%% = %d / %d",
-                format(B, big.mark = " ", scientific = FALSE), K_mean, K_sd,
-                K_quantiles[1], K_quantiles[2]), side = 3, line = 1.3, cex = 0.85)
-  mtext("p = 40; eta[40] = 1. Linea tratteggiata: media di K.", side = 1, line = 3.6, cex = 0.8)
+  par(mar = c(4.8, 6.8, 3.2, 1), mgp = c(2.5, 0.8, 0),
+      cex.axis = 2, cex.lab = 2, cex.main = 2, las = 1, bty = "l")
+  k <- seq_len(40L)
+  plot(k, distribution$probability, type = "n", xlim = c(0.5, 40.5),
+       ylim = c(0, y_max), xaxs = "i", yaxs = "i",
+       axes = FALSE, ann = FALSE, bty = "l")
+  # Griglia verticale e orizzontale disegnata PRIMA delle barre.
+  abline(v = x_ticks, h = y_ticks, col = "grey88", lwd = 0.8)
+  rect(k - 0.38, 0, k + 0.38, distribution$probability, col = "grey30", border = NA)
+  axis(1, at = x_ticks)
+  axis(2, at = y_ticks, las = 1)
+  box(bty = "l")
+  abline(v = distribution$K_mean, col = "black", lwd = 2, lty = 2)
+  title(main = bquote(eta == .(distribution$eta_usr)), line = 1)
+  title(xlab = "K", line = 2.6)
+  title(ylab = "P(K)", line = 4.6)
+  invisible(NULL)
 }
 
-# Eseguire questa riga con Ctrl+Invio per mostrare il grafico.
-plot_prior_K_distribution()
-
-if (save_figures) {
-  figure_dir <- file.path(.plot_dir, "results", "figures")
-  dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
-  figure_name <- paste0("PriorK_a_theta_", prior_number_label(a_theta),
-                        "_b_theta_", prior_number_label(b_theta),
-                        "_eta_usr_", prior_number_label(eta_usr),
-                        "_a_sigma_", prior_number_label(a_sigma),
-                        "_b_sigma_", prior_number_label(b_sigma))
-  save_prior_K_figure <- function(path, format) {
-    if (format == "pdf") {
-      pdf(path, width = 9, height = 6, useDingbats = FALSE)
+save_prior_K_figure <- function(path, format, distribution) {
+  if (format == "pdf") {
+    # Cairo incorpora i font e preserva eta greca nei lettori PDF.
+    if (capabilities("cairo")) {
+      cairo_pdf(path, width = 9, height = 6)
     } else {
-      png(path, width = 1800, height = 1200, res = 200)
+      pdf(path, width = 9, height = 6, useDingbats = FALSE)
     }
-    on.exit(dev.off())
-    plot_prior_K_distribution()
-    invisible(NULL)
+  } else {
+    png(path, width = 1800, height = 1200, res = 200)
   }
-  save_prior_K_figure(file.path(figure_dir, paste0(figure_name, ".pdf")), "pdf")
-  save_prior_K_figure(file.path(figure_dir, paste0(figure_name, ".png")), "png")
+  on.exit(dev.off())
+  plot_prior_K_distribution(distribution)
+  invisible(NULL)
+}
+
+# Una figura per eta (le precedenti restano nella cronologia del pannello Plots).
+# Per rivederne una: plot_prior_K_distribution(prior_K_distributions[[1]])
+for (distribution in prior_K_distributions) {
+  plot_prior_K_distribution(distribution)
+  if (save_figures) {
+    figure_dir <- file.path(.plot_dir, "results", "figures")
+    dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
+    figure_name <- paste0("PriorK_a_theta_", prior_number_label(a_theta),
+                          "_b_theta_", prior_number_label(b_theta),
+                          "_eta_usr_", prior_number_label(distribution$eta_usr),
+                          "_a_sigma_", prior_number_label(a_sigma),
+                          "_b_sigma_", prior_number_label(b_sigma))
+    save_prior_K_figure(file.path(figure_dir, paste0(figure_name, ".pdf")), "pdf", distribution)
+    save_prior_K_figure(file.path(figure_dir, paste0(figure_name, ".png")), "png", distribution)
+  }
 }

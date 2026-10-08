@@ -12,7 +12,7 @@ eta_grid <- c(0, 0.5, 0.75, 0.9)
 B <- 100000L
 seed <- 20261001L
 # sigma ~ Beta(a_sigma,b_sigma), p=40; eta[40]=1 sempre.
-save_figures <- FALSE
+save_figures <- TRUE
 # ====================================================================
 
 .plot_dir <- if (file.exists("PriorK_helpers.R")) "." else "PriorK_simulation"

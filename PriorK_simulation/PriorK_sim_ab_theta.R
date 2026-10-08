@@ -8,8 +8,8 @@ B <- 10000L
 seed <- 20261001L
 eta_usr <- 1
 a_sigma <- b_sigma <- 1  # Fissi anche nel campionatore condiviso.
-a_theta_grid <- c(0.1,0.5,0.88,1.5)
-b_theta_grid <- c(0.1,0.5,0.94,1.5) # RATE
+a_theta_grid <- c(0.25,0.5,0.88,1.5)
+b_theta_grid <- c(0.25,0.5,0.94,1.5) # RATE
 # ====================================================================
 
 .ab_prior_dir <- if (file.exists("PriorK_helpers.R")) "." else "PriorK_simulation"

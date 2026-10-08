@@ -56,20 +56,24 @@ simulate_prior_K_ab_theta(a_theta_grid, b_theta_grid, eta, B, seed, output_file)
 ## Grafico riproducibile di K
 
 `Plot_PriorK_ab_theta.R` si esegue dall'alto con Ctrl+Invio, dalla cartella
-progetto oppure PriorK_simulation. Modificare a_theta, b_theta, eta_usr, B e seed
+progetto oppure PriorK_simulation. Modificare a_theta, b_theta, a_sigma, b_sigma, eta_usr, B e seed
 nella configurazione. Usa lo stesso campionatore della tabella gerarchica.
 Le barre sono le probabilita' Monte Carlo di K; non una KDE continua.
 
 Le figure sono salvate in `results/figures/` con nomi come:
 
 ```
-PriorK_a_theta_0.88_b_theta_0.94_eta_usr_0.5.pdf
-PriorK_a_theta_0.88_b_theta_0.94_eta_usr_0.5.png
+PriorK_a_theta_0.88_b_theta_0.94_eta_usr_0.5_a_sigma_1_b_sigma_1.pdf
+PriorK_a_theta_0.88_b_theta_0.94_eta_usr_0.5_a_sigma_1_b_sigma_1.png
 ```
 
 Nessun CSV o campione viene salvato dal grafico. `save_figures=FALSE` mostra
 soltanto il grafico nel pannello Plots. Ripetere gli stessi parametri sovrascrive
 le relative figure.
+
+`draw_K_hyperprior(..., a_sigma=1, b_sigma=1)` permette di personalizzare la
+Beta di sigma. Entrambi i parametri devono essere positivi e finiti; i default
+preservano Beta(1,1) e il comportamento della tabella gerarchica.
 
 ## Coefficienti e verifiche
 

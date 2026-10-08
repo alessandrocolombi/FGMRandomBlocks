@@ -5,11 +5,13 @@
 # ==================== CONFIGURAZIONE UTENTE ==========================
 a_theta <- 0.88
 b_theta <- 0.94                 # RATE Gamma, non scale
+a_sigma <- 1                   # shape1 Beta
+b_sigma <- 1                   # shape2 Beta
 eta_usr <- 0.5                  # Probabilita' dei changepoint esperti interni
 B <- 10000L
 seed <- 20261001L
-# sigma ~ Beta(1,1), p=40; l'ultimo nodo ha sempre eta[40]=1.
-save_figures <- TRUE
+# sigma ~ Beta(a_sigma,b_sigma), p=40; l'ultimo nodo ha sempre eta[40]=1.
+save_figures <- FALSE
 # ====================================================================
 
 .plot_dir <- if (file.exists("PriorK_helpers.R")) "." else "PriorK_simulation"
@@ -17,7 +19,7 @@ source(file.path(.plot_dir, "PriorK_helpers.R"), local = TRUE)
 source(file.path(.plot_dir, "PriorKh_test.R"), local = TRUE)
 eta <- make_prior_eta(eta_usr)
 set.seed(seed)
-K <- draw_K_hyperprior(a_theta, b_theta, eta, B)
+K <- draw_K_hyperprior(a_theta, b_theta, eta, B, a_sigma = a_sigma, b_sigma = b_sigma)
 
 # K e' discreto: si rappresentano frequenze relative, senza KDE continua.
 k <- seq_len(40L)
@@ -42,8 +44,8 @@ plot_prior_K_distribution <- function() {
   abline(v = K_mean, col = "#C57422", lwd = 2, lty = 2)
   title(main = "Distribuzione prior marginale di K", line = 4)
   # Testo ASCII per PDF portabili anche senza il font matematico Symbol.
-  mtext(sprintf("a_theta = %g; b_theta = %g (rate); eta_usr = %g; sigma ~ Beta(1,1)",
-                a_theta, b_theta, eta_usr), side = 3, line = 2.6, cex = 0.9)
+  mtext(sprintf("a_theta = %g; b_theta = %g (rate); eta_usr = %g; sigma ~ Beta(%g,%g)",
+                a_theta, b_theta, eta_usr, a_sigma, b_sigma), side = 3, line = 2.6, cex = 0.9)
   mtext(sprintf("B = %s | media (sd) = %.2f (%.2f) | quantili 2.5%% / 97.5%% = %d / %d",
                 format(B, big.mark = " ", scientific = FALSE), K_mean, K_sd,
                 K_quantiles[1], K_quantiles[2]), side = 3, line = 1.3, cex = 0.85)
@@ -58,7 +60,9 @@ if (save_figures) {
   dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
   figure_name <- paste0("PriorK_a_theta_", prior_number_label(a_theta),
                         "_b_theta_", prior_number_label(b_theta),
-                        "_eta_usr_", prior_number_label(eta_usr))
+                        "_eta_usr_", prior_number_label(eta_usr),
+                        "_a_sigma_", prior_number_label(a_sigma),
+                        "_b_sigma_", prior_number_label(b_sigma))
   save_prior_K_figure <- function(path, format) {
     if (format == "pdf") {
       pdf(path, width = 9, height = 6, useDingbats = FALSE)

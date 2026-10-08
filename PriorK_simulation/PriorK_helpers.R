@@ -52,15 +52,18 @@ draw_K_given_parameters <- function(theta, sigma, eta, pmfs = NULL) {
 
 # Riutilizzata sia dalla tabella gerarchica sia dal grafico.
 # Il chiamante imposta il seme; questa funzione non stampa e non salva.
-draw_K_hyperprior <- function(a_theta, b_theta, eta, B) {
+draw_K_hyperprior <- function(a_theta, b_theta, eta, B, a_sigma = 1, b_sigma = 1) {
   check_prior_simulation(eta, B)
   if (length(a_theta) != 1L || length(b_theta) != 1L ||
       !is.finite(a_theta) || !is.finite(b_theta) || a_theta <= 0 || b_theta <= 0)
     stop("a_theta e b_theta devono essere positivi e finiti (b_theta = rate).")
+  if (length(a_sigma) != 1L || length(b_sigma) != 1L ||
+      !is.finite(a_sigma) || !is.finite(b_sigma) || a_sigma <= 0 || b_sigma <= 0)
+    stop("a_sigma e b_sigma devono essere positivi e finiti.")
   load_logC()
   K <- integer(B)
   for (b in seq_len(B)) {
-    sigma <- rbeta(1L, 1, 1)
+    sigma <- rbeta(1L, shape1 = a_sigma, shape2 = b_sigma)
     U <- rgamma(1L, shape = a_theta, rate = b_theta)
     theta <- U - sigma
     if (!is.finite(theta) || sigma <= 0 || sigma >= 1 || U <= 0 || theta <= -sigma)
